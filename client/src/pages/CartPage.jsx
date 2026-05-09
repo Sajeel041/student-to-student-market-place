@@ -39,7 +39,7 @@ export default function CartPage() {
                   <div className="cart-thumb" style={{ background: 'var(--teal-100)', overflow: 'hidden' }}>
                     {item.photoUrl ? (
                       <img
-                        src={`/uploads/listings/${item.photoUrl}`}
+                        src={item.photoUrl}
                         alt={item.title}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
@@ -106,7 +106,7 @@ export default function CartPage() {
                 onClick={() => navigate('/checkout')}
                 style={{ height: 54 }}
               >
-                Checkout · {fmtPrice(cartTotal)} <ArrowRight />
+                Checkout · {fmtPrice(cartTotal)} <ArrowRight width={16} height={16} />
               </button>
               <p className="cart-mini" style={{ marginTop: 10 }}>
                 <Verified style={{ width: 14, height: 14 }} />

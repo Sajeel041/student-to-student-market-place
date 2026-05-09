@@ -181,7 +181,7 @@ export default function CheckoutPage() {
               <div className="recap-row" key={item.listingId}>
                 <div className="recap-thumb" style={{ background: 'var(--teal-100)', overflow: 'hidden', borderRadius: 8 }}>
                   {item.photoUrl
-                    ? <img src={`/uploads/listings/${item.photoUrl}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ? <img src={item.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     : <span>📦</span>
                   }
                 </div>
