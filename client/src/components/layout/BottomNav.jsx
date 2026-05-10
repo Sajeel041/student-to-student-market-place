@@ -1,11 +1,12 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, Search, Plus, Inbox, User } from '../ui/Icon';
+import { Home, Search, Plus, Inbox, User, Warning } from '../ui/Icon';
 
 const items = [
   { id: 'home', path: '/', label: 'Home', I: Home },
   { id: 'search', path: '/search', label: 'Search', I: Search },
   { id: 'sell', path: '/sell', label: 'Sell', sell: true },
-  { id: 'inbox', path: '/inbox', label: 'Inbox', I: Inbox },
+  { id: 'inbox', path: '/inbox', label: 'Messages', I: Inbox },
+  { id: 'complaints', path: '/complaints', label: 'Complaints', I: Warning },
   { id: 'profile', path: '/profile', label: 'Profile', I: User },
 ];
 
@@ -17,7 +18,8 @@ export default function BottomNav() {
     if (pathname === '/') return 'home';
     if (pathname.startsWith('/search')) return 'search';
     if (pathname.startsWith('/sell')) return 'sell';
-    if (pathname.startsWith('/inbox')) return 'inbox';
+    if (pathname.startsWith('/inbox') || pathname.startsWith('/chat')) return 'inbox';
+    if (pathname.startsWith('/complaints')) return 'complaints';
     if (pathname.startsWith('/profile')) return 'profile';
     return null;
   })();

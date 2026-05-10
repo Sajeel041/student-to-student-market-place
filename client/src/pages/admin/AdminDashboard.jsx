@@ -22,8 +22,8 @@ export default function AdminDashboard() {
   const cards = [
     { label: 'Total Users', value: stats.users, icon: <Users />, color: 'var(--teal-700)' },
     { label: 'Active Listings', value: stats.listings, icon: <Package />, color: 'var(--teal-600)' },
-    { label: 'Total Orders', value: stats.orders, icon: <ShieldCheck />, color: 'var(--coral)' },
-    { label: 'Total Revenue', value: fmtPrice(stats.revenue || 0), icon: <BarChartIcon />, color: 'var(--emerald)' },
+    { label: 'Total Orders', value: stats.orders, icon: <ShieldCheck />, color: 'var(--amber)' },
+    { label: 'Total Revenue', value: fmtPrice(stats.revenue || 0), icon: <BarChartIcon />, color: 'var(--green)' },
   ];
 
   return (
@@ -46,11 +46,11 @@ export default function AdminDashboard() {
           <h3 className="admin-card-title">Listings by Category</h3>
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={stats.categoryBreakdown} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis dataKey="_id" tick={{ fontSize: 11, fontFamily: 'var(--font-mono)' }} />
               <YAxis tick={{ fontSize: 11, fontFamily: 'var(--font-mono)' }} />
               <Tooltip
-                contentStyle={{ fontFamily: 'var(--font-mono)', fontSize: 12, borderRadius: 8, border: '1px solid var(--line)' }}
+                contentStyle={{ fontFamily: 'var(--font-mono)', fontSize: 12, borderRadius: 8, border: '1px solid var(--border)' }}
               />
               <Bar dataKey="count" fill="var(--teal-600)" radius={[4, 4, 0, 0]} />
             </BarChart>

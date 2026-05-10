@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { BarChart, Users, Package, ShieldCheck, Home, LogOut } from '../../components/ui/Icon';
+import { BarChart, Users, Package, ShieldCheck, Home, LogOut, Warning, Inbox } from '../../components/ui/Icon';
 import './admin.css';
 
 export default function AdminLayout() {
@@ -9,7 +9,7 @@ export default function AdminLayout() {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/admin/login');
   };
 
   return (
@@ -37,6 +37,12 @@ export default function AdminLayout() {
           </NavLink>
           <NavLink to="/admin/orders" className={({ isActive }) => `admin-nav-link${isActive ? ' active' : ''}`}>
             <ShieldCheck /> <span>Orders</span>
+          </NavLink>
+          <NavLink to="/admin/complaints" className={({ isActive }) => `admin-nav-link${isActive ? ' active' : ''}`}>
+            <Warning /> <span>Complaints</span>
+          </NavLink>
+          <NavLink to="/admin/chats" className={({ isActive }) => `admin-nav-link${isActive ? ' active' : ''}`}>
+            <Inbox /> <span>Chats</span>
           </NavLink>
         </nav>
 

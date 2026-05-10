@@ -192,7 +192,7 @@ export default function CheckoutPage() {
                 <div className="recap-price">{fmtPrice(item.price * item.qty)}</div>
               </div>
             ))}
-            <div className="sum-row total" style={{ marginTop: 8, paddingTop: 12, borderTop: '1px solid var(--line-2)' }}>
+            <div className="sum-row total" style={{ marginTop: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
               <span>Total</span><span>{fmtPrice(cartTotal)}</span>
             </div>
           </div>
@@ -280,7 +280,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
-              <p className="login-mini"><Verified /> Encrypted end-to-end. UniSwap never stores your full card number.</p>
+              <p className="login-mini"><Verified style={{ width: 14, height: 14, verticalAlign: -2 }} /> Encrypted end-to-end. UniSwap never stores your full card number.</p>
             </div>
           )}
 
@@ -309,12 +309,12 @@ export default function CheckoutPage() {
 
       <div className="checkout-cta">
         {step === 1 && (
-          <button className="btn btn-primary btn-block" onClick={goToPayment} style={{ height: 54 }}>
+          <button className="btn btn-primary" onClick={goToPayment} style={{ height: 54 }}>
             Continue to payment <ArrowRight />
           </button>
         )}
         {step === 2 && (
-          <button className="btn btn-primary btn-block" onClick={submitPayment} disabled={submitting} style={{ height: 54 }}>
+          <button className="btn btn-primary" onClick={submitPayment} disabled={submitting} style={{ height: 54 }}>
             {submitting ? <><Spinner size={18} color="white" /> Processing…</> : <>Pay {fmtPrice(cartTotal)} <Lock /></>}
           </button>
         )}
@@ -347,11 +347,11 @@ function SuccessScreen({ orderId, slot, method, cardNum, wallet, total, navigate
         <div className="tip"><span className="tip-num">3</span><div><strong>Issue at pickup?</strong> Open a dispute within 24 hours.</div></div>
       </div>
 
-      <div className="checkout-cta">
-        <button className="btn btn-primary btn-block" onClick={() => navigate('/profile')} style={{ height: 54 }}>
+      <div className="checkout-cta checkout-cta--success">
+        <button className="btn btn-primary" onClick={() => navigate('/profile')} style={{ height: 54 }}>
           View in profile <ArrowRight />
         </button>
-        <button className="btn btn-ghost btn-block" onClick={() => navigate('/')} style={{ marginTop: 8 }}>
+        <button className="btn btn-ghost" onClick={() => navigate('/')}>
           Back to home
         </button>
       </div>

@@ -14,3 +14,11 @@ export const fmtRelativeTime = (d) => {
   if (abs < 604800) return rtf.format(Math.round(diff / 86400), 'day');
   return fmtDate(d);
 };
+
+export const fmtDateTime = (d) => new Date(d).toLocaleString('en-PK', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});

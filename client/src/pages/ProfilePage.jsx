@@ -74,6 +74,15 @@ export default function ProfilePage() {
               <Verified style={{ width: 18, height: 18, color: 'var(--teal-700)' }} />
             </div>
             <div className="handle">@{profile.handle}</div>
+
+            {isOwn && (
+              <div className="profile-logout">
+                <button className="profile-logout-btn" onClick={logout}>
+                  <LogOut width={14} height={14} /> Log out
+                </button>
+              </div>
+            )}
+
             <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <span className="verify-pill">Verified GIKI student</span>
             </div>
@@ -114,13 +123,6 @@ export default function ProfilePage() {
           <div className="profile-actions">
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/settings')}>Edit profile</button>
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/sell')}>+ Post listing</button>
-            <button
-              className="btn btn-sm"
-              style={{ marginLeft: 'auto', color: 'var(--red)', background: 'var(--red-bg)', border: '1px solid #fecaca' }}
-              onClick={logout}
-            >
-              <LogOut width={14} height={14} /> Log out
-            </button>
           </div>
         )}
 
@@ -156,12 +158,12 @@ export default function ProfilePage() {
               {soldOrders.map(order => (
                 <div
                   key={order._id}
-                  style={{ background: 'white', borderRadius: 16, border: '1px solid var(--line)', padding: '14px 16px', cursor: 'pointer' }}
+                  style={{ background: 'white', borderRadius: 16, border: '1px solid var(--border)', padding: '14px 16px', cursor: 'pointer' }}
                   onClick={() => navigate(`/order/${order._id}`)}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--muted)' }}>{order.orderNumber}</span>
-                    <span style={{ fontSize: 11, color: 'var(--emerald)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Check style={{ width: 12, height: 12 }} /> {order.status === 'picked_up' ? 'Picked up' : 'Confirmed'}
                     </span>
                   </div>
@@ -201,7 +203,7 @@ export default function ProfilePage() {
           reviews.length ? (
             <div className="review-list" style={{ padding: '0 20px 24px' }}>
               {profile.reviewCount > 0 && (
-                <div style={{ padding: 16, background: 'white', border: '1px solid var(--line)', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
+                <div style={{ padding: 16, background: 'white', border: '1px solid var(--border)', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
                   <div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 36, fontWeight: 800, lineHeight: 1, letterSpacing: '-0.02em' }}>
                       {profile.rating?.toFixed(1)}

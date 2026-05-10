@@ -108,54 +108,58 @@ export default function PostListingPage() {
   };
 
   return (
-    <div className="view">
+    <div className="view post-wizard">
       <TopBar onBack={back} title={`Post listing · ${step}/3`} right={<div style={{ width: 44 }} />} />
 
-      <div className="stepper">
-        {[{ n: 1, lbl: 'Photos' }, { n: 2, lbl: 'Details' }, { n: 3, lbl: 'Pickup' }].map(s => (
-          <div key={s.n} className={`step ${step === s.n ? 'active' : ''} ${step > s.n ? 'done' : ''}`}>
-            <div className="lbl">
-              <span className="num">{step > s.n ? '✓' : s.n}</span>
-              {s.lbl}
+      <div className="post-wizard-scroll">
+        <div className="stepper">
+          {[{ n: 1, lbl: 'Photos' }, { n: 2, lbl: 'Details' }, { n: 3, lbl: 'Pickup' }].map(s => (
+            <div key={s.n} className={`step ${step === s.n ? 'active' : ''} ${step > s.n ? 'done' : ''}`}>
+              <div className="lbl">
+                <span className="num">{step > s.n ? '✓' : s.n}</span>
+                {s.lbl}
+              </div>
+              <div className="bar"><div className="fill" /></div>
             </div>
-            <div className="bar"><div className="fill" /></div>
-          </div>
-        ))}
-      </div>
-
-      {step === 1 && (
-        <div className="form-section">
-          <h2>Add photos</h2>
-          <p className="sub">First photo is the cover. {form.photos.length}/6 added.</p>
-
-          <ImageUpload
-            files={form.photos}
-            onChange={files => { setField('photos', files); setTouched(t => ({ ...t, photos: true })); }}
-            max={6}
-          />
-
-          {showErr('photos') && (
-            <div className="err" style={{ marginTop: 12 }}>
-              <Warning style={{ color: 'var(--rose)' }} /> {errors.photos}
-            </div>
-          )}
-          {form.photos.length > 0 && !errors.photos && (
-            <div className="ok" style={{ marginTop: 12 }}>
-              <CheckCirc /> Looking good — clear photos sell faster.
-            </div>
-          )}
-
-          <div style={{ marginTop: 18, padding: 12, background: 'var(--teal-50)', borderRadius: 12, border: '1px solid var(--teal-100)', display: 'flex', gap: 10 }}>
-            <Sparkle style={{ width: 18, height: 18, color: 'var(--teal-700)', flexShrink: 0, marginTop: 1 }} />
-            <div style={{ fontSize: 12, color: 'var(--teal-900)', lineHeight: 1.5 }}>
-              <strong>Tip:</strong> Take photos in daylight, on a clean surface. Show any wear up close so buyers know what to expect.
-            </div>
-          </div>
+          ))}
         </div>
-      )}
 
-      {step === 2 && (
-        <div className="form-section">
+        {step === 1 && (
+          <div className="form-section form-section--photos">
+            <h2>Add photos</h2>
+            <p className="sub">First photo is the cover. {form.photos.length}/6 added.</p>
+
+            <div className="post-photo-field">
+              <ImageUpload
+                files={form.photos}
+                onChange={files => { setField('photos', files); setTouched(t => ({ ...t, photos: true })); }}
+                max={6}
+                expandWhenEmpty
+              />
+            </div>
+
+            {showErr('photos') && (
+              <div className="err" style={{ marginTop: 12 }}>
+                <Warning style={{ color: 'var(--red)' }} /> {errors.photos}
+              </div>
+            )}
+            {form.photos.length > 0 && !errors.photos && (
+              <div className="ok" style={{ marginTop: 12 }}>
+                <CheckCirc /> Looking good — clear photos sell faster.
+              </div>
+            )}
+
+            <div className="post-wizard-tip">
+              <Sparkle style={{ width: 18, height: 18, color: 'var(--teal-700)', flexShrink: 0, marginTop: 1 }} />
+              <div style={{ fontSize: 12, color: 'var(--teal-900)', lineHeight: 1.5 }}>
+                <strong>Tip:</strong> Take photos in daylight, on a clean surface. Show any wear up close so buyers know what to expect.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="form-section">
           <h2>Tell buyers about it</h2>
           <p className="sub">Be specific — clear titles get 3× more saves.</p>
 
@@ -170,7 +174,7 @@ export default function PostListingPage() {
               maxLength={80}
             />
             {showErr('title') ? (
-              <div className="err"><Warning style={{ color: 'var(--rose)' }} /> {errors.title}</div>
+              <div className="err"><Warning style={{ color: 'var(--red)' }} /> {errors.title}</div>
             ) : (
               <div className="hint">
                 <span style={{ flex: 1 }}>Be specific: include brand, model, edition.</span>
@@ -195,7 +199,7 @@ export default function PostListingPage() {
                 </button>
               ))}
             </div>
-            {showErr('category') && <div className="err"><Warning style={{ color: 'var(--rose)' }} /> {errors.category}</div>}
+            {showErr('category') && <div className="err"><Warning style={{ color: 'var(--red)' }} /> {errors.category}</div>}
           </div>
 
           {form.category === 'Textbooks' && (
@@ -210,7 +214,7 @@ export default function PostListingPage() {
                 style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}
               />
               {showErr('courseCode') ? (
-                <div className="err"><Warning style={{ color: 'var(--rose)' }} /> {errors.courseCode}</div>
+                <div className="err"><Warning style={{ color: 'var(--red)' }} /> {errors.courseCode}</div>
               ) : (
                 <div className="hint">Format: <span style={{ fontFamily: 'var(--font-mono)' }}>MT-115</span>, <span style={{ fontFamily: 'var(--font-mono)' }}>CS-316</span>.</div>
               )}
@@ -229,7 +233,7 @@ export default function PostListingPage() {
                 >{c}</button>
               ))}
             </div>
-            {showErr('condition') && <div className="err"><Warning style={{ color: 'var(--rose)' }} /> {errors.condition}</div>}
+            {showErr('condition') && <div className="err"><Warning style={{ color: 'var(--red)' }} /> {errors.condition}</div>}
           </div>
 
           <div className={`field ${showErr('price') ? 'error' : showOk('price') ? 'success' : ''}`}>
@@ -246,7 +250,7 @@ export default function PostListingPage() {
                 style={{ fontFamily: 'var(--font-mono)' }}
               />
             </div>
-            {showErr('price') && <div className="err"><Warning style={{ color: 'var(--rose)' }} /> {errors.price}</div>}
+            {showErr('price') && <div className="err"><Warning style={{ color: 'var(--red)' }} /> {errors.price}</div>}
           </div>
 
           <div className="field">
@@ -286,10 +290,10 @@ export default function PostListingPage() {
             </div>
           </div>
         </div>
-      )}
+        )}
 
-      {step === 3 && (
-        <div className="form-section">
+        {step === 3 && (
+          <div className="form-section">
           <h2>How will buyers pick up?</h2>
           <p className="sub">Pick a campus spot you're comfortable meeting at.</p>
 
@@ -304,7 +308,7 @@ export default function PostListingPage() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '12px 14px', background: 'white',
-                    border: `1px solid ${form.pickup === p ? 'var(--teal-700)' : 'var(--line)'}`,
+                    border: `1px solid ${form.pickup === p ? 'var(--teal-700)' : 'var(--border)'}`,
                     borderRadius: 12, fontSize: 13.5, fontWeight: 600, color: 'var(--ink)',
                     textAlign: 'left',
                     boxShadow: form.pickup === p ? '0 0 0 2px var(--teal-100)' : 'none',
@@ -313,7 +317,7 @@ export default function PostListingPage() {
                   <span style={{
                     width: 20, height: 20, borderRadius: '50%',
                     background: form.pickup === p ? 'var(--teal-700)' : 'transparent',
-                    border: `2px solid ${form.pickup === p ? 'var(--teal-700)' : 'var(--line)'}`,
+                    border: `2px solid ${form.pickup === p ? 'var(--teal-700)' : 'var(--border)'}`,
                     display: 'grid', placeItems: 'center', flexShrink: 0,
                   }}>
                     {form.pickup === p && <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'white' }} />}
@@ -323,11 +327,11 @@ export default function PostListingPage() {
                 </button>
               ))}
             </div>
-            {showErr('pickup') && <div className="err" style={{ marginTop: 8 }}><Warning style={{ color: 'var(--rose)' }} /> {errors.pickup}</div>}
+            {showErr('pickup') && <div className="err" style={{ marginTop: 8 }}><Warning style={{ color: 'var(--red)' }} /> {errors.pickup}</div>}
           </div>
 
-          <div style={{ padding: 12, background: 'white', border: '1px solid var(--line)', borderRadius: 12, display: 'flex', gap: 10, marginTop: 16 }}>
-            <Info style={{ width: 18, height: 18, color: 'var(--info)', flexShrink: 0, marginTop: 1 }} />
+          <div style={{ padding: 12, background: 'white', border: '1px solid var(--border)', borderRadius: 12, display: 'flex', gap: 10, marginTop: 16 }}>
+            <Info style={{ width: 18, height: 18, color: 'var(--teal-700)', flexShrink: 0, marginTop: 1 }} />
             <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.55 }}>
               <strong>Safety first.</strong> Meet during daylight in a public spot. Inspect the item before paying.
             </div>
@@ -342,27 +346,28 @@ export default function PostListingPage() {
             <div className="row"><span className="k">Price</span><span className="v" style={{ fontFamily: 'var(--font-mono)' }}>{form.price ? fmtPrice(parseInt(form.price)) : '—'}</span></div>
             <div className="row"><span className="k">Photos</span><span className="v">{form.photos.length}</span></div>
             <div className="row"><span className="k">Pickup</span><span className="v" style={{ fontSize: 12 }}>{form.pickup || '—'}</span></div>
-            {form.moveOut && <div className="row"><span className="k">Move-Out Sale</span><span className="v" style={{ color: 'var(--coral)' }}>Yes</span></div>}
+            {form.moveOut && <div className="row"><span className="k">Move-Out Sale</span><span className="v" style={{ color: 'var(--red)' }}>Yes</span></div>}
           </div>
 
           {serverError && (
             <div className="err" style={{ marginTop: 12 }}>
-              <Warning style={{ color: 'var(--rose)' }} /> {serverError}
+              <Warning style={{ color: 'var(--red)' }} /> {serverError}
             </div>
           )}
         </div>
-      )}
+        )}
+      </div>
 
-      <div style={{ padding: '12px 20px 24px', display: 'grid', gridTemplateColumns: step === 1 ? '1fr' : '1fr 2fr', gap: 8, position: 'sticky', bottom: 0, background: 'var(--cream)', borderTop: '1px solid var(--line)' }}>
+      <div className="post-footer">
         {step > 1 && (
           <button className="btn btn-secondary" onClick={back}>Back</button>
         )}
         {step < 3 ? (
-          <button className="btn btn-primary btn-block" onClick={next}>
+          <button className="btn btn-primary" onClick={next}>
             Continue <ArrowRight width={16} height={16} />
           </button>
         ) : (
-          <button className="btn btn-primary btn-block" onClick={publish} disabled={submitting}>
+          <button className="btn btn-primary" onClick={publish} disabled={submitting}>
             {submitting ? <Spinner size={18} color="white" /> : <><Check width={16} height={16} /> Publish listing</>}
           </button>
         )}

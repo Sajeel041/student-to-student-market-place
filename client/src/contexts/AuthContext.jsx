@@ -32,6 +32,12 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const r = await api.get('/auth/me');
+    setUser(r.data);
+    return r.data;
+  }, []);
+
   const updateUser = useCallback((partial) => {
     setUser(prev => prev ? { ...prev, ...partial } : prev);
   }, []);
@@ -63,7 +69,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser, savedSet, toggleSave }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser, updateUser, savedSet, toggleSave }}>
       {children}
     </AuthContext.Provider>
   );

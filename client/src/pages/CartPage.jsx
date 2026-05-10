@@ -19,7 +19,7 @@ export default function CartPage() {
         {cart.length === 0 ? (
           <div className="cart-empty" style={{ padding: '60px 20px', textAlign: 'center' }}>
             <div className="cart-empty-ico" style={{ fontSize: 48, marginBottom: 16 }}>
-              <Cart style={{ width: 56, height: 56, color: 'var(--muted-2)' }} />
+              <Cart style={{ width: 56, height: 56, color: 'var(--subtle)' }} />
             </div>
             <h3>Your cart is empty</h3>
             <p>Tap "Add to cart" on any listing to reserve it for campus pickup.</p>
@@ -92,7 +92,7 @@ export default function CartPage() {
               </div>
               <div className="sum-row">
                 <span>Campus pickup</span>
-                <span style={{ color: 'var(--emerald)', fontWeight: 700 }}>FREE</span>
+                <span style={{ color: 'var(--green)', fontWeight: 700 }}>FREE</span>
               </div>
               <div className="sum-row total">
                 <span>Total</span>
@@ -100,9 +100,9 @@ export default function CartPage() {
               </div>
             </div>
 
-            <div className="cart-cta" style={{ padding: '0 20px 24px' }}>
+            <div className="cart-cta">
               <button
-                className="btn btn-primary btn-block"
+                className="btn btn-primary"
                 onClick={() => navigate('/checkout')}
                 style={{ height: 54 }}
               >

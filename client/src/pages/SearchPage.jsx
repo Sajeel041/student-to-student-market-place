@@ -72,7 +72,7 @@ export default function SearchPage() {
       <TopBar right={<div style={{ width: 44 }} />} />
 
       <div className="view">
-        <div className="searchbar" style={{ marginTop: 4 }}>
+        <div className="searchbar" style={{ margin: '12px 16px 24px' }}>
           <Search />
           <input
             autoFocus

@@ -10,7 +10,10 @@ const listingsRoutes = require('./routes/listings');
 const usersRoutes = require('./routes/users');
 const ordersRoutes = require('./routes/orders');
 const reviewsRoutes = require('./routes/reviews');
+const conversationsRoutes = require('./routes/conversations');
 const adminRoutes = require('./routes/admin');
+const complaintsRoutes = require('./routes/complaints');
+const offersRoutes = require('./routes/offers');
 
 const app = express();
 
@@ -33,7 +36,10 @@ app.use('/api/listings', listingsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api/conversations', conversationsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/complaints', complaintsRoutes);
+app.use('/api/offers', offersRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

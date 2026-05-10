@@ -37,7 +37,7 @@ export const Phone = i('<rect x="6" y="2" width="12" height="20" rx="2"/><path d
 export const Music = i('<path d="M9 17V5l11-2v12"/><circle cx="6" cy="17" r="3"/><circle cx="17" cy="15" r="3"/>');
 export const Dots = i('<circle cx="12" cy="6" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="18" r="2"/>');
 export const Trash = i('<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>');
-export const Warning = f('<path d="M12 2L1 21h22L12 2zm0 6v7m0 2v1" stroke="white" strokeWidth="1.5" fill="none"/>');
+export const Warning = (p) => <svg viewBox="0 0 24 24" width="16" height="16" fill="none" {...p}><path d="M12 2L1 21h22L12 2z" fill="currentColor" opacity=".15"/><path d="M12 2L1 21h22L12 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/><path d="M12 9v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="17" r="1" fill="currentColor"/></svg>;
 export const Info = i('<circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v5h1"/>');
 export const Wifi = (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M2 9c6-5 14-5 20 0"/><path d="M5 13c4-3 10-3 14 0"/><path d="M9 17c2-1 4-1 6 0"/><circle cx="12" cy="20" r="0.5" fill="currentColor"/></svg>;
 export const Battery = (p) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="2" y="7" width="18" height="10" rx="2"/><rect x="4" y="9" width="14" height="6" fill="currentColor" stroke="none"/><path d="M22 11v2"/></svg>;

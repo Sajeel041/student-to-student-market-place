@@ -2,6 +2,18 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const { signAndSetCookie } = require('../utils/helpers');
 
+/** Promote to admin when email matches ADMIN_EMAIL (fixes older accounts created as user). */
+async function syncAdminRoleIfNeeded(user) {
+  if (!user) return user;
+  const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase()?.trim();
+  if (!adminEmail) return user;
+  if (user.email === adminEmail && user.role !== 'admin') {
+    user.role = 'admin';
+    await user.save();
+  }
+  return user;
+}
+
 // POST /api/auth/register
 const register = async (req, res) => {
   try {
@@ -74,6 +86,7 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Incorrect password' });
     }
 
+    await syncAdminRoleIfNeeded(user);
     signAndSetCookie(res, user._id, user.role);
     return res.json(user.toPublic());
   } catch (err) {
@@ -94,6 +107,7 @@ const me = async (req, res) => {
     const user = await User.findById(req.user._id)
       .select('-passwordHash -__v')
       .populate('savedListings', '_id title price photos status');
+    await syncAdminRoleIfNeeded(user);
     return res.json(user);
   } catch (err) {
     return res.status(500).json({ message: 'Server error' });

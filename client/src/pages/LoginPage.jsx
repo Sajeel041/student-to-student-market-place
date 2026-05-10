@@ -143,59 +143,46 @@ export default function LoginPage() {
 
   return (
     <div className="login-shell">
-      <div className="login-hero">
-        <div className="login-brand">
-          <span className="login-brand-dot">U</span>
-          UniSwap
-        </div>
+      <div className="login-layout">
+        <aside className="login-aside">
+          <div className="login-aside-inner">
+            <div className="login-brand">
+              <span className="login-brand-dot">U</span>
+              UniSwap
+            </div>
 
-        <div className="login-tag">
-          <Verified />
-          GIKI Topi students only
-        </div>
-      </div>
+            <div className="login-tag">
+              <Verified />
+              GIKI Topi students only
+            </div>
 
-      <div className="login-card">
+            <p className="login-aside-lead">
+              The campus marketplace for textbooks, electronics, and everything you need between classes.
+            </p>
+            <ul className="login-aside-points">
+              <li><CheckCirc /> Verified @giki.edu.pk accounts</li>
+              <li><CheckCirc /> Meet on campus for pickup</li>
+              <li><CheckCirc /> Message sellers securely</li>
+            </ul>
+          </div>
+        </aside>
+
+        <main className="login-main">
+          <div className="login-card">
         {/* Tabs */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 0,
-            marginBottom: 24,
-            background: 'var(--cream-2)',
-            borderRadius: 12,
-            padding: 4,
-          }}
-        >
+        <div className="login-tabs-seg" role="tablist" aria-label="Account">
           {['signin', 'register'].map((t) => (
             <button
               key={t}
               type="button"
+              role="tab"
+              aria-selected={tab === t}
+              className={`login-tabs-seg-btn ${tab === t ? 'active' : ''}`}
               onClick={() => {
                 setTab(t);
                 setAuthError(null);
                 setTouched({});
                 setFieldErrors({});
-              }}
-              style={{
-                flex: 1,
-                padding: '8px 0',
-                borderRadius: 9,
-                fontWeight: 700,
-                fontSize: 13.5,
-                background:
-                  tab === t ? 'white' : 'transparent',
-                color:
-                  tab === t
-                    ? 'var(--ink)'
-                    : 'var(--muted)',
-                border: 'none',
-                cursor: 'pointer',
-                boxShadow:
-                  tab === t
-                    ? '0 1px 4px rgba(0,0,0,0.08)'
-                    : 'none',
-                transition: 'all 0.15s',
               }}
             >
               {t === 'signin'
@@ -224,125 +211,127 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* EMAIL */}
-            <div className="field">
-              <label>
-                University email{' '}
-                <span className="req">*</span>
-              </label>
+            <div className="login-field-split">
+              {/* EMAIL */}
+              <div className="field">
+                <label>
+                  University email{' '}
+                  <span className="req">*</span>
+                </label>
 
-              <div
-                className={`input-wrap ${
-                  touched.email && fieldErrors.email
-                    ? 'has-err'
-                    : touched.email && emailValid
-                    ? 'has-ok'
-                    : ''
-                }`}
-              >
-                <input
-                  type="email"
-                  className={`input ${
-                    touched.email &&
-                    fieldErrors.email
-                      ? 'error'
+                <div
+                  className={`input-wrap ${
+                    touched.email && fieldErrors.email
+                      ? 'has-err'
+                      : touched.email && emailValid
+                      ? 'has-ok'
                       : ''
                   }`}
-                  placeholder="u2023633@giki.edu.pk"
-                  value={email}
-                  autoComplete="username"
-                  spellCheck={false}
-                  autoCapitalize="none"
-                  onChange={(e) =>
-                    change(
-                      'email',
-                      e.target.value,
-                      setEmail
-                    )
-                  }
-                  onBlur={() =>
-                    blur('email', email)
-                  }
-                />
+                >
+                  <input
+                    type="email"
+                    className={`input ${
+                      touched.email &&
+                      fieldErrors.email
+                        ? 'error'
+                        : ''
+                    }`}
+                    placeholder="u2023633@giki.edu.pk"
+                    value={email}
+                    autoComplete="username"
+                    spellCheck={false}
+                    autoCapitalize="none"
+                    onChange={(e) =>
+                      change(
+                        'email',
+                        e.target.value,
+                        setEmail
+                      )
+                    }
+                    onBlur={() =>
+                      blur('email', email)
+                    }
+                  />
 
-                {touched.email && emailValid && (
-                  <span className="adorn ok">
-                    <CheckCirc />
-                  </span>
-                )}
+                  {touched.email && emailValid && (
+                    <span className="adorn ok">
+                      <CheckCirc />
+                    </span>
+                  )}
+                </div>
+
+                {touched.email &&
+                  fieldErrors.email && (
+                    <div className="err">
+                      <Warning />
+                      {fieldErrors.email}
+                    </div>
+                  )}
               </div>
 
-              {touched.email &&
-                fieldErrors.email && (
-                  <div className="err">
-                    <Warning />
-                    {fieldErrors.email}
-                  </div>
-                )}
-            </div>
+              {/* PASSWORD */}
+              <div className="field">
+                <label>
+                  Password{' '}
+                  <span className="req">*</span>
+                </label>
 
-            {/* PASSWORD */}
-            <div className="field">
-              <label>
-                Password{' '}
-                <span className="req">*</span>
-              </label>
-
-              <div
-                className={`input-wrap ${
-                  touched.password &&
-                  fieldErrors.password
-                    ? 'has-err'
-                    : ''
-                }`}
-              >
-                <input
-                  type={
-                    showPwd ? 'text' : 'password'
-                  }
-                  className={`input ${
+                <div
+                  className={`input-wrap ${
                     touched.password &&
                     fieldErrors.password
-                      ? 'error'
+                      ? 'has-err'
                       : ''
                   }`}
-                  placeholder="••••••••"
-                  value={password}
-                  autoComplete="current-password"
-                  onChange={(e) =>
-                    change(
-                      'password',
-                      e.target.value,
-                      setPassword
-                    )
-                  }
-                  onBlur={() =>
-                    blur('password', password)
-                  }
-                />
-
-                <button
-                  type="button"
-                  className="adorn show"
-                  onClick={() =>
-                    setShowPwd((s) => !s)
-                  }
                 >
-                  {showPwd ? (
-                    <EyeOff />
-                  ) : (
-                    <Eye />
-                  )}
-                </button>
-              </div>
+                  <input
+                    type={
+                      showPwd ? 'text' : 'password'
+                    }
+                    className={`input ${
+                      touched.password &&
+                      fieldErrors.password
+                        ? 'error'
+                        : ''
+                    }`}
+                    placeholder="••••••••"
+                    value={password}
+                    autoComplete="current-password"
+                    onChange={(e) =>
+                      change(
+                        'password',
+                        e.target.value,
+                        setPassword
+                      )
+                    }
+                    onBlur={() =>
+                      blur('password', password)
+                    }
+                  />
 
-              {touched.password &&
-                fieldErrors.password && (
-                  <div className="err">
-                    <Warning />
-                    {fieldErrors.password}
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    className="adorn show"
+                    onClick={() =>
+                      setShowPwd((s) => !s)
+                    }
+                  >
+                    {showPwd ? (
+                      <EyeOff />
+                    ) : (
+                      <Eye />
+                    )}
+                  </button>
+                </div>
+
+                {touched.password &&
+                  fieldErrors.password && (
+                    <div className="err">
+                      <Warning />
+                      {fieldErrors.password}
+                    </div>
+                  )}
+              </div>
             </div>
 
             {/* BUTTON */}
@@ -352,7 +341,6 @@ export default function LoginPage() {
               disabled={submitting}
               style={{
                 height: 54,
-                marginTop: 8,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -376,10 +364,7 @@ export default function LoginPage() {
               )}
             </button>
 
-            <p
-              className="login-mini"
-              style={{ marginTop: 16 }}
-            >
+            <p className="login-mini">
               By continuing you agree to
               UniSwap&apos;s Campus Code of
               Conduct.
@@ -401,99 +386,101 @@ export default function LoginPage() {
               email.
             </p>
 
-            {/* NAME */}
-            <div className="field">
-              <label>
-                Full name{' '}
-                <span className="req">*</span>
-              </label>
+            <div className="login-field-split">
+              {/* NAME */}
+              <div className="field">
+                <label>
+                  Full name{' '}
+                  <span className="req">*</span>
+                </label>
 
-              <div
-                className={`input-wrap ${
-                  touched.name && fieldErrors.name
-                    ? 'has-err'
-                    : touched.name && nameValid
-                    ? 'has-ok'
-                    : ''
-                }`}
-              >
-                <input
-                  type="text"
-                  className={`input ${
-                    touched.name &&
-                    fieldErrors.name
-                      ? 'error'
+                <div
+                  className={`input-wrap ${
+                    touched.name && fieldErrors.name
+                      ? 'has-err'
+                      : touched.name && nameValid
+                      ? 'has-ok'
                       : ''
                   }`}
-                  placeholder="Sara Ahmed"
-                  value={name}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/[0-9]/g, '');
-                    change('name', v, setName);
-                  }}
-                  onBlur={() => blur('name', name)}
-                />
+                >
+                  <input
+                    type="text"
+                    className={`input ${
+                      touched.name &&
+                      fieldErrors.name
+                        ? 'error'
+                        : ''
+                    }`}
+                    placeholder="Sara Ahmed"
+                    value={name}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/[0-9]/g, '');
+                      change('name', v, setName);
+                    }}
+                    onBlur={() => blur('name', name)}
+                  />
 
-                {touched.name && nameValid && (
-                  <span className="adorn ok">
-                    <CheckCirc />
-                  </span>
+                  {touched.name && nameValid && (
+                    <span className="adorn ok">
+                      <CheckCirc />
+                    </span>
+                  )}
+                </div>
+
+                {touched.name && fieldErrors.name && (
+                  <div className="err">
+                    <Warning />
+                    {fieldErrors.name}
+                  </div>
                 )}
               </div>
 
-              {touched.name && fieldErrors.name && (
-                <div className="err">
-                  <Warning />
-                  {fieldErrors.name}
-                </div>
-              )}
-            </div>
+              {/* EMAIL */}
+              <div className="field">
+                <label>
+                  University email{' '}
+                  <span className="req">*</span>
+                </label>
 
-            {/* EMAIL */}
-            <div className="field">
-              <label>
-                University email{' '}
-                <span className="req">*</span>
-              </label>
-
-              <div
-                className={`input-wrap ${
-                  touched.email && fieldErrors.email
-                    ? 'has-err'
-                    : touched.email && emailValid
-                    ? 'has-ok'
-                    : ''
-                }`}
-              >
-                <input
-                  type="email"
-                  className={`input ${
-                    touched.email && fieldErrors.email ? 'error' : ''
+                <div
+                  className={`input-wrap ${
+                    touched.email && fieldErrors.email
+                      ? 'has-err'
+                      : touched.email && emailValid
+                      ? 'has-ok'
+                      : ''
                   }`}
-                  placeholder="u2023633@giki.edu.pk"
-                  value={email}
-                  autoComplete="username"
-                  spellCheck={false}
-                  autoCapitalize="none"
-                  onChange={(e) =>
-                    change('email', e.target.value, setEmail)
-                  }
-                  onBlur={() => blur('email', email)}
-                />
+                >
+                  <input
+                    type="email"
+                    className={`input ${
+                      touched.email && fieldErrors.email ? 'error' : ''
+                    }`}
+                    placeholder="u2023633@giki.edu.pk"
+                    value={email}
+                    autoComplete="username"
+                    spellCheck={false}
+                    autoCapitalize="none"
+                    onChange={(e) =>
+                      change('email', e.target.value, setEmail)
+                    }
+                    onBlur={() => blur('email', email)}
+                  />
 
-                {touched.email && emailValid && (
-                  <span className="adorn ok">
-                    <CheckCirc />
-                  </span>
+                  {touched.email && emailValid && (
+                    <span className="adorn ok">
+                      <CheckCirc />
+                    </span>
+                  )}
+                </div>
+
+                {touched.email && fieldErrors.email && (
+                  <div className="err">
+                    <Warning />
+                    {fieldErrors.email}
+                  </div>
                 )}
               </div>
-
-              {touched.email && fieldErrors.email && (
-                <div className="err">
-                  <Warning />
-                  {fieldErrors.email}
-                </div>
-              )}
             </div>
 
             {/* PASSWORD */}
@@ -540,14 +527,7 @@ export default function LoginPage() {
             </div>
 
             {/* DEPT + BATCH */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns:
-                  '1fr 1fr',
-                gap: 12,
-              }}
-            >
+            <div className="login-field-split login-field-split--tight">
               <div className="field">
                 <label>Department</label>
 
@@ -600,7 +580,6 @@ export default function LoginPage() {
               disabled={submitting}
               style={{
                 height: 54,
-                marginTop: 8,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -624,15 +603,14 @@ export default function LoginPage() {
               )}
             </button>
 
-            <p
-              className="login-mini"
-              style={{ marginTop: 16 }}
-            >
+            <p className="login-mini">
               Only @giki.edu.pk emails are
               accepted.
             </p>
           </form>
         )}
+          </div>
+        </main>
       </div>
     </div>
   );

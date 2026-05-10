@@ -1,12 +1,12 @@
 export const CATEGORIES = [
-  { id: 'all', label: 'For You', icon: 'Sparkle' },
-  { id: 'Textbooks', label: 'Textbooks', icon: 'Book' },
-  { id: 'Furniture', label: 'Furniture', icon: 'Sofa' },
-  { id: 'Electronics', label: 'Electronics', icon: 'Laptop' },
-  { id: 'Clothing', label: 'Clothing', icon: 'Shirt' },
-  { id: 'Sports', label: 'Sports', icon: 'Bike' },
-  { id: 'Appliances', label: 'Appliances', icon: 'Music' },
-  { id: 'Other', label: 'Other', icon: 'Tag' },
+  { id: 'all', label: 'For You', icon: 'Sparkle', sub: 'Personalized picks', emoji: '✨' },
+  { id: 'Textbooks', label: 'Textbooks', icon: 'Book', sub: 'Course books & notes', emoji: '📚' },
+  { id: 'Furniture', label: 'Furniture', icon: 'Sofa', sub: 'Desks, chairs & more', emoji: '🛋️' },
+  { id: 'Electronics', label: 'Electronics', icon: 'Laptop', sub: 'Gadgets & devices', emoji: '💻' },
+  { id: 'Clothing', label: 'Clothing', icon: 'Shirt', sub: 'Fashion & accessories', emoji: '👕' },
+  { id: 'Sports', label: 'Sports', icon: 'Bike', sub: 'Gear & equipment', emoji: '🏀' },
+  { id: 'Appliances', label: 'Appliances', icon: 'Music', sub: 'Hostel essentials', emoji: '🔌' },
+  { id: 'Other', label: 'Other', icon: 'Tag', sub: 'Everything else', emoji: '📦' },
 ];
 
 export const CAT_TILES = [

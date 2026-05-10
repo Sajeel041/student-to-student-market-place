@@ -6,6 +6,12 @@ const {
   getAdminListings, updateAdminListing, deleteAdminListing,
   getAdminOrders, updateAdminOrder,
 } = require('../controllers/adminController');
+const {
+  listComplaints,
+  updateComplaint,
+  listAllConversations,
+  listConversationMessages,
+} = require('../controllers/adminModerationController');
 
 const router = express.Router();
 
@@ -23,5 +29,11 @@ router.delete('/listings/:id', deleteAdminListing);
 
 router.get('/orders', getAdminOrders);
 router.patch('/orders/:id', updateAdminOrder);
+
+router.get('/complaints', listComplaints);
+router.patch('/complaints/:id', updateComplaint);
+
+router.get('/conversations', listAllConversations);
+router.get('/conversations/:id/messages', listConversationMessages);
 
 module.exports = router;

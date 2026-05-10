@@ -6,7 +6,7 @@ import TopBar from '../components/layout/TopBar';
 import BottomNav from '../components/layout/BottomNav';
 import ListingCard from '../components/ui/ListingCard';
 import Spinner from '../components/ui/Spinner';
-import { Search, Sliders, Pin, Tag } from '../components/ui/Icon';
+import { Search, Sliders, Plus, Tag } from '../components/ui/Icon';
 import { CATEGORIES } from '../utils/constants';
 
 export default function HomePage() {
@@ -36,25 +36,35 @@ export default function HomePage() {
 
   const activeListing = filtered.filter(l => l.status === 'active');
 
+  const catCounts = useMemo(() => {
+    const counts = {};
+    listings.filter(l => l.status === 'active').forEach(l => {
+      counts[l.category] = (counts[l.category] || 0) + 1;
+    });
+    counts.all = listings.filter(l => l.status === 'active').length;
+    return counts;
+  }, [listings]);
+
   return (
     <div className="page">
       <TopBar />
 
       <div className="view">
-        <div className="greet">
-          <h1>Hi {user?.name?.split(' ')[0] || 'there'} — find it on campus.</h1>
-          <p className="sub">Buy and sell with verified GIKI students.</p>
-          <span className="campus-pill">
-            <Pin />
-            GIKI Topi
-          </span>
-        </div>
+        {/* ── Hero Section ────────────────────────────────── */}
+        <section className="hero-section">
+          <h1 className="hero-heading">
+            Find it on <span className="hero-accent">campus.</span>
+          </h1>
+          <p className="hero-sub">
+            The student marketplace for GIKI. Buy, sell & swap with verified students.
+          </p>
 
-        <div className="searchbar" onClick={() => navigate('/search')} role="button" style={{ cursor: 'pointer' }}>
-          <Search />
-          <input placeholder="Search textbooks, furniture, electronics…" readOnly style={{ cursor: 'pointer' }} />
-          <Sliders style={{ color: 'var(--teal-700)' }} />
-        </div>
+          <div className="searchbar" onClick={() => navigate('/search')} role="button" style={{ cursor: 'pointer' }}>
+            <Search />
+            <input placeholder="Search textbooks, furniture, electronics…" readOnly style={{ cursor: 'pointer' }} />
+            <Sliders style={{ color: 'var(--teal-700)' }} />
+          </div>
+        </section>
 
         {moveOutListings.length > 0 && (
           <div className="hero-card">
@@ -74,14 +84,25 @@ export default function HomePage() {
           </div>
         )}
 
-        <div className="chip-row">
+        {/* ── Explore Categories ──────────────────────────── */}
+        <div className="sec-label">
+          <span className="sec-label-text">Explore</span>
+          <span className="sec-label-bar" />
+        </div>
+
+        <div className="cat-bento">
           {CATEGORIES.map(c => (
             <button
               key={c.id}
-              className={`chip ${cat === c.id ? 'active' : ''}`}
+              className={`cat-bento-card ${cat === c.id ? 'active' : ''}`}
+              data-cat={c.id}
               onClick={() => setCat(c.id)}
             >
-              {c.label}
+              <span className="cat-bento-icon">{c.emoji}</span>
+              <span className="cat-bento-label">{c.label}</span>
+              <span className="cat-bento-sub">
+                {catCounts[c.id] || 0} {(catCounts[c.id] || 0) === 1 ? 'item' : 'items'}
+              </span>
             </button>
           ))}
         </div>
@@ -102,10 +123,15 @@ export default function HomePage() {
           </>
         )}
 
-        <div className="sec-head">
-          <h2>{cat === 'all' ? 'Recent on campus' : `In ${cat}`}</h2>
+        {/* ── Recent Listings ─────────────────────────────── */}
+        <div className="sec-label">
+          <span className="sec-label-dot" />
+          <span className="sec-label-text">
+            {cat === 'all' ? 'Recent on campus' : `In ${cat}`}
+          </span>
+          <span className="sec-label-bar" />
           {!loading && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--muted)', flexShrink: 0 }}>
               {activeListing.length} listings
             </span>
           )}
@@ -120,6 +146,10 @@ export default function HomePage() {
             <div className="ico"><Tag /></div>
             <h3>No listings yet</h3>
             <p>Be the first to post something on campus!</p>
+            <button type="button" className="empty-cta" onClick={() => navigate('/sell')}>
+              <Plus aria-hidden />
+              <span className="empty-cta-label">Post First Listing</span>
+            </button>
           </div>
         ) : (
           <div className="feed-grid">

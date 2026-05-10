@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Camera, X } from '../ui/Icon';
 
-export default function ImageUpload({ files, onChange, max = 6 }) {
+export default function ImageUpload({ files, onChange, max = 6, expandWhenEmpty = false }) {
   const inputRef = useRef(null);
   const [previews, setPreviews] = useState(() =>
     files.map(f => ({ file: f, url: URL.createObjectURL(f) }))
@@ -26,8 +26,13 @@ export default function ImageUpload({ files, onChange, max = 6 }) {
     onChange(next.map(p => p.file));
   };
 
+  const emptyExpanded = expandWhenEmpty && previews.length === 0;
+
   return (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+    <div
+      className={`img-upload-root${expandWhenEmpty ? ' img-upload-root--expand' : ''}`}
+      style={expandWhenEmpty ? undefined : { display: 'flex', gap: 10, flexWrap: 'wrap' }}
+    >
       {previews.map((p, i) => (
         <div
           key={p.url}
@@ -66,18 +71,32 @@ export default function ImageUpload({ files, onChange, max = 6 }) {
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          style={{
-            width: 88, height: 88, borderRadius: 12,
-            border: '1.5px dashed var(--line)', background: 'var(--cream-2)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', gap: 6, cursor: 'pointer',
-            color: 'var(--muted)', fontSize: 11, fontWeight: 600,
-            flexShrink: 0,
-          }}
+          className={emptyExpanded ? 'img-upload-add img-upload-add--hero' : 'img-upload-add'}
+          style={
+            emptyExpanded
+              ? undefined
+              : {
+                  width: 88,
+                  height: 88,
+                  borderRadius: 12,
+                  border: '1.5px dashed var(--border-2)',
+                  background: 'var(--cream-2)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  cursor: 'pointer',
+                  color: 'var(--muted)',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  flexShrink: 0,
+                }
+          }
           aria-label="Add photos"
         >
-          <Camera style={{ width: 22, height: 22 }} />
-          Add photo
+          <Camera style={{ width: emptyExpanded ? 28 : 22, height: emptyExpanded ? 28 : 22 }} />
+          {emptyExpanded ? 'Tap to add photos' : 'Add photo'}
         </button>
       )}
 
