@@ -30,6 +30,8 @@ export default function ListingDetailPage() {
   const [myOffer, setMyOffer] = useState(null);
   const [sellerOffers, setSellerOffers] = useState([]);
   const [offersLoading, setOffersLoading] = useState(false);
+  const [customOffer, setCustomOffer] = useState(''); // digits only (amount)
+  const [customOfferErr, setCustomOfferErr] = useState(null);
 
   // Reviews (buyer after pickup)
   const [reviewEligible, setReviewEligible] = useState(null); // { orderId } | null
@@ -145,6 +147,13 @@ export default function ListingDetailPage() {
     showToast({ msg: `Added to cart · ${listing.title}` });
   };
 
+  const handleCheckout = () => {
+    if (!user) { navigate('/login'); return; }
+    if (isOwnListing) { showToast({ msg: "You can't checkout your own listing" }); return; }
+    if (!already) addToCart(listing);
+    navigate('/checkout');
+  };
+
   const openSellerChat = async () => {
     if (!user) { navigate('/login'); return; }
     if (isOwnListing) { navigate('/inbox'); return; }
@@ -191,6 +200,27 @@ export default function ListingDetailPage() {
     if (myOffer) { showToast({ msg: 'Offer already sent for this listing' }); return; }
     try {
       const { data } = await api.post('/offers', { listingId: String(listing._id), pct });
+      setMyOffer(data);
+      showToast({ msg: `Offer sent · ${fmtPrice(data.amount)}` });
+    } catch (e) {
+      showToast({ msg: e.response?.data?.message || 'Could not send offer' });
+    }
+  };
+
+  const sendCustomOffer = async () => {
+    const raw = (customOffer || '').replace(/\D/g, '');
+    const amount = Number(raw);
+    const price = Number(listing.price);
+    if (!Number.isFinite(amount) || amount <= 0) { setCustomOfferErr('Enter an amount.'); return; }
+    if (!Number.isFinite(price) || price <= 0) { setCustomOfferErr('Invalid product price.'); return; }
+    if (amount >= price) { setCustomOfferErr('Offer must be less than the product price.'); return; }
+
+    setCustomOfferErr(null);
+    if (!user) { navigate('/login'); return; }
+    if (isOwnListing) { showToast({ msg: "You can't send an offer on your own listing" }); return; }
+    if (myOffer) { showToast({ msg: 'Offer already sent for this listing' }); return; }
+    try {
+      const { data } = await api.post('/offers', { listingId: String(listing._id), amount });
       setMyOffer(data);
       showToast({ msg: `Offer sent · ${fmtPrice(data.amount)}` });
     } catch (e) {
@@ -393,6 +423,16 @@ export default function ListingDetailPage() {
                         : <><Cart /> Add to cart</>
                     }
                   </button>
+                  {!isOwnListing && (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-block"
+                      onClick={handleCheckout}
+                      style={{ background: 'linear-gradient(135deg, var(--teal-700), var(--teal-500))' }}
+                    >
+                      Checkout
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn btn-secondary btn-block"
@@ -530,6 +570,51 @@ export default function ListingDetailPage() {
                           </button>
                         ))}
                       </div>
+
+                      {/* Custom offer */}
+                      <div style={{ marginTop: 10, opacity: myOffer ? 0.55 : 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink-3)', marginBottom: 6 }}>
+                          Custom offer
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <div style={{ flex: 1 }}>
+                            <input
+                              className={`input ${customOfferErr ? 'error' : ''}`}
+                              placeholder={`Enter amount (max ${fmtPrice(Number(listing.price) - 1)})`}
+                              value={customOffer}
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              disabled={!!myOffer}
+                              onChange={(e) => {
+                                const digits = (e.target.value || '').replace(/\D/g, '').slice(0, 9);
+                                const max = Math.max(0, Number(listing.price) - 1);
+                                const nextNum = digits ? Number(digits) : 0;
+                                const next = nextNum > max ? String(max) : digits;
+                                setCustomOffer(next);
+                                setCustomOfferErr(null);
+                              }}
+                            />
+                            {customOfferErr && (
+                              <div className="err" style={{ marginTop: 6 }}>
+                                {customOfferErr}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ height: 44, whiteSpace: 'nowrap' }}
+                            disabled={!!myOffer}
+                            onClick={sendCustomOffer}
+                          >
+                            Send
+                          </button>
+                        </div>
+                        <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--muted)' }}>
+                          Digits only. Offer must be lower than the listed price.
+                        </div>
+                      </div>
+
                       {myOffer && (
                         <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--teal-900)', background: 'var(--teal-50)', border: '1px solid var(--teal-100)', borderRadius: 12, padding: '10px 12px' }}>
                           {myOffer.status === 'accepted' ? (

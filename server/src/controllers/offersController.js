@@ -3,15 +3,11 @@ const Listing = require('../models/Listing');
 const Notification = require('../models/Notification');
 
 // POST /api/offers
-// body: { listingId, pct }
+// body: { listingId, pct } OR { listingId, amount }
 const sendOffer = async (req, res) => {
   try {
     const listingId = (req.body.listingId || '').toString();
-    const pct = Number(req.body.pct);
     if (!listingId) return res.status(400).json({ message: 'listingId required' });
-    if (!Number.isFinite(pct) || pct <= 0 || pct >= 100) {
-      return res.status(400).json({ message: 'Invalid offer percentage' });
-    }
 
     const listing = await Listing.findById(listingId).select('_id price seller status openOffers title');
     if (!listing) return res.status(404).json({ message: 'Listing not found' });
@@ -22,8 +18,32 @@ const sendOffer = async (req, res) => {
     const sellerId = listing.seller.toString();
     if (buyerId === sellerId) return res.status(400).json({ message: 'You cannot send an offer on your own listing' });
 
-    const amount = Math.round(Number(listing.price) * (1 - pct / 100));
-    if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ message: 'Invalid offer amount' });
+    const price = Number(listing.price);
+    if (!Number.isFinite(price) || price <= 0) return res.status(400).json({ message: 'Invalid listing price' });
+
+    const rawAmount = req.body.amount;
+    const hasAmount = rawAmount !== undefined && rawAmount !== null && String(rawAmount).trim() !== '';
+    const pct = Number(req.body.pct);
+
+    let amount;
+    let pctOut;
+
+    if (hasAmount) {
+      amount = Number(String(rawAmount).replace(/[^\d.]/g, ''));
+      if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ message: 'Invalid offer amount' });
+      if (amount >= price) return res.status(400).json({ message: 'Offer must be less than the product price' });
+      // Derive pct for display purposes
+      pctOut = Math.round(((price - amount) / price) * 100);
+      pctOut = Math.max(1, Math.min(99, pctOut));
+    } else {
+      if (!Number.isFinite(pct) || pct <= 0 || pct >= 100) {
+        return res.status(400).json({ message: 'Invalid offer percentage' });
+      }
+      pctOut = Math.round(pct);
+      amount = Math.round(price * (1 - pctOut / 100));
+      if (!Number.isFinite(amount) || amount <= 0) return res.status(400).json({ message: 'Invalid offer amount' });
+      if (amount >= price) return res.status(400).json({ message: 'Offer must be less than the product price' });
+    }
 
     const existing = await Offer.findOne({ listing: listing._id, buyer: req.user._id }).lean();
     if (existing) return res.status(409).json({ message: 'Offer already sent for this listing' });
@@ -32,7 +52,7 @@ const sendOffer = async (req, res) => {
       listing: listing._id,
       buyer: req.user._id,
       seller: listing.seller,
-      pct: Math.round(pct),
+      pct: pctOut,
       amount,
       status: 'sent',
     });
