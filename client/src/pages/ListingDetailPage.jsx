@@ -71,6 +71,22 @@ export default function ListingDetailPage() {
     Promise.all(reqs).finally(() => setOffersLoading(false));
   }, [listing?._id, listing?.seller?._id, user?._id]);
 
+  // Refresh buyer offer state (accepted/rejected) after seller action
+  useEffect(() => {
+    if (!listing?._id || !user?._id) return;
+    const sellerId = listing?.seller?._id;
+    const isOwn = sellerId && String(user._id) === String(sellerId);
+    if (isOwn) return;
+    if (!myOffer || myOffer.status !== 'sent') return;
+    const listingId = String(listing._id);
+    const t = setInterval(() => {
+      api.get(`/offers/listing/${listingId}/mine`)
+        .then((r) => setMyOffer(r.data || null))
+        .catch(() => {});
+    }, 6000);
+    return () => clearInterval(t);
+  }, [listing?._id, listing?.seller?._id, user?._id, myOffer?.status]);
+
   useEffect(() => {
     if (!listing?._id || !user?._id) { setReviewEligible(null); return; }
     const sellerId = listing?.seller?._id;
@@ -516,7 +532,13 @@ export default function ListingDetailPage() {
                       </div>
                       {myOffer && (
                         <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--teal-900)', background: 'var(--teal-50)', border: '1px solid var(--teal-100)', borderRadius: 12, padding: '10px 12px' }}>
-                          Offer sent: <strong>{fmtPrice(myOffer.amount)}</strong> ({`-${myOffer.pct}%`}) · waiting for seller response
+                          {myOffer.status === 'accepted' ? (
+                            <>Offer accepted: <strong>{fmtPrice(myOffer.amount)}</strong> ({`-${myOffer.pct}%`}) · discount will apply at checkout</>
+                          ) : myOffer.status === 'rejected' ? (
+                            <>Offer rejected: <strong>{fmtPrice(myOffer.amount)}</strong> ({`-${myOffer.pct}%`})</>
+                          ) : (
+                            <>Offer sent: <strong>{fmtPrice(myOffer.amount)}</strong> ({`-${myOffer.pct}%`}) · waiting for seller response</>
+                          )}
                         </div>
                       )}
                     </>

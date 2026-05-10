@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useCart } from '../contexts/CartContext';
@@ -40,11 +40,64 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState({});
   const [paymentError, setPaymentError] = useState(null);
   const [placedOrderId, setPlacedOrderId] = useState(null);
+  const [offerMap, setOfferMap] = useState({}); // listingId -> accepted offer { amount, pct }
 
   if (cart.length === 0 && !placedOrderId) {
     navigate('/cart', { replace: true });
     return null;
   }
+
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const entries = await Promise.all(
+          cart.map(async (item) => {
+            try {
+              const r = await api.get(`/offers/listing/${item.listingId}/mine`);
+              const o = r.data;
+              if (o && o.status === 'accepted') {
+                return [String(item.listingId), { amount: Number(o.amount), pct: Number(o.pct) }];
+              }
+              return [String(item.listingId), null];
+            } catch {
+              return [String(item.listingId), null];
+            }
+          })
+        );
+        if (!alive) return;
+        const next = {};
+        entries.forEach(([k, v]) => { if (v) next[k] = v; });
+        setOfferMap(next);
+      } catch {
+        if (alive) setOfferMap({});
+      }
+    };
+    if (cart.length) load();
+    return () => { alive = false; };
+  }, [cart]);
+
+  const effectiveCartTotal = useMemo(() => {
+    if (!cart.length) return cartTotal;
+    const itemsSum = cart.reduce((sum, item) => {
+      const off = offerMap[String(item.listingId)];
+      const unit = off?.amount ?? item.price;
+      return sum + unit * item.qty;
+    }, 0);
+    const serviceFee = cart.length > 0 ? 50 : 0;
+    return itemsSum + serviceFee;
+  }, [cart, offerMap, cartTotal]);
+
+  const discountAmount = useMemo(() => {
+    if (!cart.length) return 0;
+    const rawItemsSum = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const effItemsSum = cart.reduce((sum, item) => {
+      const off = offerMap[String(item.listingId)];
+      const unit = off?.amount ?? item.price;
+      return sum + unit * item.qty;
+    }, 0);
+    return Math.max(0, rawItemsSum - effItemsSum);
+  }, [cart, offerMap]);
 
   const cardBrand = useMemo(() => {
     const n = cardNum.replace(/\s/g, '');
@@ -99,12 +152,12 @@ export default function CheckoutPage() {
         items: cart.map(item => ({
           listing: item.listingId,
           title: item.title,
-          price: item.price,
+          price: offerMap[String(item.listingId)]?.amount ?? item.price,
           qty: item.qty,
           sellerName: item.sellerName,
           pickupLocation: item.pickup,
         })),
-        total: cartTotal,
+        total: effectiveCartTotal,
         paymentMethod: method,
         pickupSlot: slot?.label || pickupSlot,
         pickupLocation: slot?.sub || cart[0]?.pickup || 'GIKI Campus',
@@ -126,7 +179,7 @@ export default function CheckoutPage() {
   const slot = PICKUP_SLOTS.find(s => s.id === pickupSlot);
 
   if (step === 3 && placedOrderId) {
-    return <SuccessScreen orderId={placedOrderId} slot={slot} method={method} cardNum={cardNum} wallet={wallet} total={cartTotal} navigate={navigate} />;
+    return <SuccessScreen orderId={placedOrderId} slot={slot} method={method} cardNum={cardNum} wallet={wallet} total={effectiveCartTotal} navigate={navigate} />;
   }
 
   return (
@@ -189,11 +242,21 @@ export default function CheckoutPage() {
                   <div className="recap-title">{item.title}</div>
                   <div className="recap-meta">Qty {item.qty}</div>
                 </div>
-                <div className="recap-price">{fmtPrice(item.price * item.qty)}</div>
+                <div className="recap-price">
+                  {offerMap[String(item.listingId)]
+                    ? fmtPrice(offerMap[String(item.listingId)].amount * item.qty)
+                    : fmtPrice(item.price * item.qty)
+                  }
+                </div>
               </div>
             ))}
+            {discountAmount > 0 && (
+              <div className="sum-row" style={{ marginTop: 6 }}>
+                <span>Offer discount</span><span style={{ color: 'var(--green)', fontWeight: 800 }}>−{fmtPrice(discountAmount)}</span>
+              </div>
+            )}
             <div className="sum-row total" style={{ marginTop: 8, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-              <span>Total</span><span>{fmtPrice(cartTotal)}</span>
+              <span>Total</span><span>{fmtPrice(effectiveCartTotal)}</span>
             </div>
           </div>
         </div>
@@ -300,9 +363,12 @@ export default function CheckoutPage() {
 
           <div className="order-recap">
             <h4>You're paying</h4>
-            <div className="sum-row"><span>Subtotal</span><span>{fmtPrice(cartTotal - 50)}</span></div>
+            <div className="sum-row"><span>Subtotal</span><span>{fmtPrice(effectiveCartTotal - 50)}</span></div>
             <div className="sum-row"><span>Service fee</span><span>{fmtPrice(50)}</span></div>
-            <div className="sum-row total"><span>Total</span><span>{fmtPrice(cartTotal)}</span></div>
+            {discountAmount > 0 && (
+              <div className="sum-row"><span>Offer discount</span><span style={{ color: 'var(--green)', fontWeight: 800 }}>−{fmtPrice(discountAmount)}</span></div>
+            )}
+            <div className="sum-row total"><span>Total</span><span>{fmtPrice(effectiveCartTotal)}</span></div>
           </div>
         </div>
       )}
@@ -315,7 +381,7 @@ export default function CheckoutPage() {
         )}
         {step === 2 && (
           <button className="btn btn-primary" onClick={submitPayment} disabled={submitting} style={{ height: 54 }}>
-            {submitting ? <><Spinner size={18} color="white" /> Processing…</> : <>Pay {fmtPrice(cartTotal)} <Lock /></>}
+            {submitting ? <><Spinner size={18} color="white" /> Processing…</> : <>Pay {fmtPrice(effectiveCartTotal)} <Lock /></>}
           </button>
         )}
       </div>
