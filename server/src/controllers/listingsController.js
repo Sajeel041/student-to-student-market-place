@@ -138,4 +138,24 @@ const getListingsByUser = async (req, res) => {
   }
 };
 
-module.exports = { getListings, createListing, getListing, updateListing, deleteListing, getListingsByUser };
+// GET /api/listings/mine  (seller)
+const getMyListings = async (req, res) => {
+  try {
+    const listings = await Listing.find({ seller: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate('seller', 'name handle avatarUrl');
+    return res.json(listings);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+module.exports = {
+  getListings,
+  createListing,
+  getListing,
+  updateListing,
+  deleteListing,
+  getListingsByUser,
+  getMyListings,
+};

@@ -10,6 +10,7 @@ export default function ListingCard({ listing, condensed, hideHeart }) {
   const showCourse = listing.courseCode && listing.category === 'Textbooks';
 
   const photoSrc = listing.photos?.[0] || null;
+  const fallbackLabel = (listing.title || '').split(' ').slice(0, 2).join(' ');
 
   const handleSave = (e) => {
     e.stopPropagation();
@@ -25,12 +26,27 @@ export default function ListingCard({ listing, condensed, hideHeart }) {
             <img
               src={photoSrc}
               alt={listing.title}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              className="card-img-fit"
+              loading="lazy"
+              onError={(e) => {
+                // If the URL is broken, fall back to placeholder (without crashing render)
+                e.currentTarget.style.display = 'none';
+                const ph = e.currentTarget.parentElement?.querySelector?.('.ph');
+                if (ph) ph.style.display = 'flex';
+              }}
             />
           ) : (
             <div className="ph ph-teal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ padding: 8, textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--teal-700)' }}>
-                {listing.title.split(' ').slice(0, 2).join(' ')}
+                {fallbackLabel}
+              </span>
+            </div>
+          )}
+          {/* Placeholder node for image error fallback */}
+          {photoSrc && (
+            <div className="ph ph-teal" style={{ display: 'none', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ padding: 8, textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--teal-700)' }}>
+                {fallbackLabel}
               </span>
             </div>
           )}

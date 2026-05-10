@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,12 +25,34 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('selling');
 
+  const refreshMine = useCallback(async () => {
+    if (!isOwn || !me?._id) return;
+    try {
+      const r = await api.get('/listings/mine');
+      setActiveListings(r.data || []);
+    } catch (e) {
+      // Fallback if backend hasn't been restarted yet (route missing)
+      const r2 = await api.get(`/listings/user/${me._id}`);
+      setActiveListings(r2.data || []);
+    }
+  }, [isOwn, me?._id]);
+
   useEffect(() => {
     if (!targetId) return;
     setLoading(true);
+    const fetchListings = async () => {
+      if (!isOwn) return api.get(`/listings/user/${targetId}`);
+      try {
+        return await api.get('/listings/mine');
+      } catch {
+        // Fallback if backend hasn't been restarted yet (route missing)
+        return await api.get(`/listings/user/${targetId}`);
+      }
+    };
+
     const fetches = [
       api.get(`/users/${targetId}`).then(r => setProfile(r.data)),
-      api.get(`/listings/user/${targetId}`).then(r => setActiveListings(r.data)),
+      fetchListings().then(r => setActiveListings(r.data)),
       api.get(`/reviews/user/${targetId}`).then(r => setReviews(r.data)),
     ];
     if (isOwn) {
@@ -49,8 +71,35 @@ export default function ProfilePage() {
 
   const soldOrders = orders.filter(o => o.status === 'picked_up' || o.status === 'confirmed');
 
+  const myActiveListings = isOwn
+    ? activeListings.filter((l) => l.status === 'active')
+    : activeListings;
+  const mySoldListings = isOwn
+    ? activeListings.filter((l) => l.status === 'sold')
+    : [];
+  const myUnlistedListings = isOwn
+    ? activeListings.filter((l) => l.status === 'archived')
+    : [];
+
+  const updateStatus = async (id, status) => {
+    const label =
+      status === 'sold' ? 'mark this listing as SOLD' :
+      status === 'archived' ? 'unlist this item' :
+      'relist this item';
+    if (!window.confirm(`Are you sure you want to ${label}?`)) return;
+    await api.patch(`/listings/${id}`, { status });
+    await refreshMine();
+  };
+
+  const removeListing = async (id) => {
+    if (!window.confirm('Delete/remove this listing?')) return;
+    await api.delete(`/listings/${id}`);
+    await refreshMine();
+  };
+
   const tabs = [
-    { id: 'selling', label: 'Selling', count: activeListings.length },
+    { id: 'selling', label: 'Selling', count: myActiveListings.length },
+    ...(isOwn ? [{ id: 'unlisted', label: 'Unlisted', count: myUnlistedListings.length }] : []),
     ...(isOwn ? [{ id: 'sold', label: 'Sold', count: soldOrders.length }] : []),
     ...(isOwn ? [{ id: 'saved', label: 'Saved', count: savedListings.length }] : []),
     { id: 'reviews', label: 'Reviews', count: reviews.length },
@@ -139,15 +188,58 @@ export default function ProfilePage() {
         </div>
 
         {tab === 'selling' && (
-          activeListings.length ? (
+          myActiveListings.length ? (
             <div className="feed-grid">
-              {activeListings.map(l => <ListingCard key={l._id} listing={l} />)}
+              {myActiveListings.map(l => (
+                <div key={l._id} className="my-listing-wrap">
+                  <ListingCard listing={l} />
+                  {isOwn && (
+                    <div className="my-listing-actions">
+                      <button className="btn btn-primary btn-sm" onClick={() => updateStatus(l._id, 'sold')}>
+                        Mark sold
+                      </button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => updateStatus(l._id, 'archived')}>
+                        Unlist
+                      </button>
+                      <button className="btn btn-secondary btn-sm danger" onClick={() => removeListing(l._id)}>
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="empty">
               <div className="ico"><Tag /></div>
               <h3>No active listings</h3>
               <p>{isOwn ? 'Tap + to post your first item.' : 'No active listings right now.'}</p>
+            </div>
+          )
+        )}
+
+        {tab === 'unlisted' && isOwn && (
+          myUnlistedListings.length ? (
+            <div className="feed-grid">
+              {myUnlistedListings.map(l => (
+                <div key={l._id} className="my-listing-wrap">
+                  <ListingCard listing={l} />
+                  <div className="my-listing-actions">
+                    <button className="btn btn-primary btn-sm" onClick={() => updateStatus(l._id, 'active')}>
+                      Relist
+                    </button>
+                    <button className="btn btn-secondary btn-sm danger" onClick={() => removeListing(l._id)}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty">
+              <div className="ico"><Tag /></div>
+              <h3>No unlisted items</h3>
+              <p>Listings you unlist will appear here.</p>
             </div>
           )
         )}
