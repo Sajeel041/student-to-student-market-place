@@ -14,6 +14,7 @@ const conversationsRoutes = require('./routes/conversations');
 const adminRoutes = require('./routes/admin');
 const complaintsRoutes = require('./routes/complaints');
 const offersRoutes = require('./routes/offers');
+const notificationsRoutes = require('./routes/notifications');
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use('/api/conversations', conversationsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/complaints', complaintsRoutes);
 app.use('/api/offers', offersRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

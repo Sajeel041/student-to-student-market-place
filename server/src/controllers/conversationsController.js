@@ -1,6 +1,7 @@
 const Conversation = require('../models/Conversation');
 const Message = require('../models/Message');
 const Listing = require('../models/Listing');
+const Notification = require('../models/Notification');
 
 function toPublicUser(u) {
   if (!u) return null;
@@ -168,6 +169,20 @@ const sendMessage = async (req, res) => {
     conv.lastMessageAt = new Date();
     conv.lastMessagePreview = body.slice(0, 120);
     await conv.save();
+
+    // Notify the other participant
+    const senderId = req.user._id.toString();
+    const recipientId = conv.buyer.toString() === senderId ? conv.seller : conv.buyer;
+    if (recipientId && recipientId.toString() !== senderId) {
+      await Notification.create({
+        user: recipientId,
+        type: 'message',
+        title: 'New message',
+        body: body.slice(0, 140),
+        url: `/chat/${conv._id}`,
+        meta: { conversationId: String(conv._id), listingId: String(conv.listing) },
+      });
+    }
 
     await msg.populate('sender', 'name avatarUrl');
     const m = msg.toObject();

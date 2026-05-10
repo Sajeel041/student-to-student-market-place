@@ -1,5 +1,6 @@
 const Offer = require('../models/Offer');
 const Listing = require('../models/Listing');
+const Notification = require('../models/Notification');
 
 // POST /api/offers
 // body: { listingId, pct }
@@ -41,6 +42,16 @@ const sendOffer = async (req, res) => {
       { path: 'buyer', select: 'name email handle avatarUrl' },
       { path: 'seller', select: 'name email handle avatarUrl' },
     ]);
+
+    // Notify seller about new offer
+    await Notification.create({
+      user: listing.seller,
+      type: 'offer',
+      title: 'New offer received',
+      body: `${offer.buyer?.name || 'A buyer'} offered ${offer.pct}% off on “${listing.title}”.`,
+      url: `/listing/${listing._id}`,
+      meta: { listingId: String(listing._id), offerId: String(offer._id), pct: offer.pct },
+    });
 
     return res.status(201).json(offer);
   } catch (err) {
@@ -99,6 +110,18 @@ const updateOfferStatus = async (req, res) => {
     offer.status = status;
     await offer.save();
     await offer.populate('buyer', 'name email handle avatarUrl');
+
+    // Notify buyer about seller decision
+    const listing = await Listing.findById(offer.listing).select('_id title');
+    await Notification.create({
+      user: offer.buyer,
+      type: 'offer',
+      title: status === 'accepted' ? 'Offer accepted' : 'Offer rejected',
+      body: listing?.title ? `Your offer on “${listing.title}” was ${status}.` : `Your offer was ${status}.`,
+      url: listing?._id ? `/listing/${listing._id}` : '',
+      meta: { listingId: listing?._id ? String(listing._id) : undefined, offerId: String(offer._id), status },
+    });
+
     return res.json(offer);
   } catch (err) {
     console.error(err);
