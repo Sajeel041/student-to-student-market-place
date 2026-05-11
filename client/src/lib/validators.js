@@ -28,3 +28,17 @@ export const validateName = (val) => {
   if (/\d/.test(val.trim())) return 'Name cannot contain numbers.';
   return null;
 };
+
+// Batch year is the year a student joined GIKI. Topi only enrols up to the
+// current admissions cycle, so reject anything in the future (>2025) and
+// anything implausibly far in the past.
+export const BATCH_YEAR_MIN = 2018;
+export const BATCH_YEAR_MAX = 2025;
+export const validateBatchYear = (val) => {
+  if (val === '' || val == null) return null; // optional field
+  if (!/^\d{4}$/.test(String(val))) return 'Enter a 4-digit year (e.g. 2023).';
+  const n = parseInt(val, 10);
+  if (n < BATCH_YEAR_MIN) return `Batch year must be ${BATCH_YEAR_MIN} or later.`;
+  if (n > BATCH_YEAR_MAX) return `Batch year cannot be after ${BATCH_YEAR_MAX}.`;
+  return null;
+};

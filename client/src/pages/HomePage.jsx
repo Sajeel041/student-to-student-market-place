@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -15,6 +15,22 @@ export default function HomePage() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cat, setCat] = useState('all');
+  const productsRef = useRef(null);
+
+  // On mobile the category grid sits above the products list, so after picking
+  // a category we smoothly scroll the user down to the filtered results. The
+  // visual viewport check keeps this from feeling jumpy on tablet / desktop
+  // where everything is already on-screen.
+  const pickCategory = (id) => {
+    setCat(id);
+    requestAnimationFrame(() => {
+      const isMobile =
+        typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+      if (isMobile && productsRef.current) {
+        productsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  };
 
   useEffect(() => {
     setLoading(true);
@@ -96,7 +112,7 @@ export default function HomePage() {
               key={c.id}
               className={`cat-bento-card ${cat === c.id ? 'active' : ''}`}
               data-cat={c.id}
-              onClick={() => setCat(c.id)}
+              onClick={() => pickCategory(c.id)}
             >
               <span className="cat-bento-icon">{c.emoji}</span>
               <span className="cat-bento-label">{c.label}</span>
@@ -124,7 +140,7 @@ export default function HomePage() {
         )}
 
         {/* ── Recent Listings ─────────────────────────────── */}
-        <div className="sec-label">
+        <div ref={productsRef} className="sec-label home-products-anchor">
           <span className="sec-label-dot" />
           <span className="sec-label-text">
             {cat === 'all' ? 'Recent on campus' : `In ${cat}`}

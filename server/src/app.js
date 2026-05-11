@@ -18,7 +18,20 @@ const notificationsRoutes = require('./routes/notifications');
 
 const app = express();
 
-app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+// NOTE: We turn off the headers that block image previews in this app:
+//   • contentSecurityPolicy  – default img-src forbids `blob:` URLs used by
+//     `URL.createObjectURL` (for local previews on the post-listing screen)
+//     and rejects any image hosted on a different origin.
+//   • crossOriginEmbedderPolicy – also breaks some cross-origin image loads
+//     when the frontend is served separately from the API.
+//   • strictTransportSecurity – HSTS can pin localhost to HTTPS and cause
+//     mixed-content / refused-connection issues during development.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  strictTransportSecurity: false,
+}));
 app.use(morgan('dev'));
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -28,8 +41,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// Serve uploaded files — explicitly allow cross-origin so the Vite dev server
+// (different port) can render images that come back through its proxy.
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads'), {
+  setHeaders: (res) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  },
+}));
 
 // Routes
 app.use('/api/auth', authRoutes);

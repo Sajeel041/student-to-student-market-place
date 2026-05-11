@@ -6,7 +6,7 @@ import TopBar from '../components/layout/TopBar';
 import BottomNav from '../components/layout/BottomNav';
 import ListingCard from '../components/ui/ListingCard';
 import Spinner from '../components/ui/Spinner';
-import { Verified, Tag, HeartO, Star, Check, LogOut } from '../components/ui/Icon';
+import { Verified, Tag, HeartO, Star, Check, LogOut, Warning } from '../components/ui/Icon';
 import { fmtPrice, fmtDate } from '../utils/format';
 
 export default function ProfilePage() {
@@ -172,6 +172,12 @@ export default function ProfilePage() {
           <div className="profile-actions">
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/settings')}>Edit profile</button>
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/sell')}>+ Post listing</button>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => navigate('/complaints')}
+            >
+              <Warning style={{ width: 14, height: 14 }} /> Complaints
+            </button>
           </div>
         )}
 

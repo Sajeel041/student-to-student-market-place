@@ -1,5 +1,6 @@
 const Listing = require('../models/Listing');
 const User = require('../models/User');
+const { photoUrlFromFile } = require('../middleware/upload');
 
 // GET /api/listings
 const getListings = async (req, res) => {
@@ -57,7 +58,7 @@ const getListings = async (req, res) => {
 const createListing = async (req, res) => {
   try {
     const { title, description, category, courseCode, condition, price, oldPrice, pickup, moveOut, openOffers, specs } = req.body;
-    const photos = req.files ? req.files.map(f => `/uploads/listings/${f.filename}`) : [];
+    const photos = req.files ? req.files.map((f) => photoUrlFromFile(f, 'listings')).filter(Boolean) : [];
 
     const listing = await Listing.create({
       title, description, category,

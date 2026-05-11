@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Listing = require('../models/Listing');
+const { photoUrlFromFile } = require('../middleware/upload');
 
 // GET /api/users/:id
 const getUser = async (req, res) => {
@@ -21,7 +22,7 @@ const updateMe = async (req, res) => {
       if (req.body[k] !== undefined) req.user[k] = req.body[k];
     });
     if (req.file) {
-      req.user.avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      req.user.avatarUrl = photoUrlFromFile(req.file, 'avatars');
     }
     await req.user.save();
     return res.json(req.user.toPublic());

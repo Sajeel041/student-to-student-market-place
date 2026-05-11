@@ -101,6 +101,26 @@ const logout = (req, res) => {
   return res.status(204).end();
 };
 
+// GET /api/auth/check-email?email=...
+// Lightweight existence lookup used by the registration form so we can warn
+// the user *while they type* if their email is already taken. Returns
+// `{ exists: boolean }`. Never returns user data.
+const checkEmail = async (req, res) => {
+  try {
+    const email = (req.query.email || '').toString().trim().toLowerCase();
+    if (!email) return res.json({ exists: false });
+    const gikiPattern = /^u\d{4}\d{3,5}@giki\.edu\.pk$/i;
+    if (!gikiPattern.test(email)) {
+      return res.json({ exists: false, invalid: true });
+    }
+    const found = await User.exists({ email });
+    return res.json({ exists: !!found });
+  } catch (err) {
+    console.error('checkEmail error', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // GET /api/auth/me
 const me = async (req, res) => {
   try {
@@ -114,4 +134,4 @@ const me = async (req, res) => {
   }
 };
 
-module.exports = { register, login, logout, me };
+module.exports = { register, login, logout, me, checkEmail };

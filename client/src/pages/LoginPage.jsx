@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../lib/api';
 import {
   validateGikiEmail,
   validatePassword,
   validateName,
+  validateBatchYear,
 } from '../lib/validators';
 
+import EmailSuggest from '../components/ui/EmailSuggest';
 import {
   ArrowRight,
   CheckCirc,
@@ -35,6 +38,15 @@ export default function LoginPage() {
   const [name, setName] = useState('');
   const [dept, setDept] = useState('');
   const [batch, setBatch] = useState('');
+  const [batchError, setBatchError] = useState(null);
+
+  // Live "is this email already registered?" check (register tab only).
+  const [emailExistsState, setEmailExistsState] = useState({
+    checking: false,
+    exists: false,
+    checkedEmail: null,
+  });
+  const checkEmailTimer = useRef(null);
 
   const DEPTS = ['CS', 'EE', 'CV', 'ME', 'BBA', 'Other'];
 
@@ -54,13 +66,55 @@ export default function LoginPage() {
     setter(val);
     setAuthError(null);
 
-    if (touched[field]) {
+    // On the register tab, validate the email *while typing* (not just on blur)
+    // so the user sees format errors immediately. Sign-in tab keeps the
+    // touched-then-validate flow because users often paste partial text there.
+    if (field === 'email' && tab === 'register') {
+      setTouched((t) => ({ ...t, email: true }));
+      setFieldErrors((e) => ({ ...e, email: validateGikiEmail(val) }));
+    } else if (touched[field]) {
       setFieldErrors((e) => ({
         ...e,
         [field]: getError(field, val),
       }));
     }
   };
+
+  // Debounced existence check on the register tab.
+  useEffect(() => {
+    if (tab !== 'register') return undefined;
+    if (checkEmailTimer.current) clearTimeout(checkEmailTimer.current);
+
+    const trimmed = email.trim().toLowerCase();
+    if (validateGikiEmail(trimmed)) {
+      // Not a valid GIKI email yet — nothing to check.
+      setEmailExistsState({ checking: false, exists: false, checkedEmail: null });
+      return undefined;
+    }
+    setEmailExistsState((s) => ({ ...s, checking: true }));
+    checkEmailTimer.current = setTimeout(async () => {
+      try {
+        const r = await api.get('/auth/check-email', { params: { email: trimmed } });
+        setEmailExistsState({
+          checking: false,
+          exists: !!r.data?.exists,
+          checkedEmail: trimmed,
+        });
+      } catch {
+        // Network hiccup — silently fall back; server-side will still catch it.
+        setEmailExistsState({ checking: false, exists: false, checkedEmail: null });
+      }
+    }, 450);
+
+    return () => {
+      if (checkEmailTimer.current) clearTimeout(checkEmailTimer.current);
+    };
+  }, [email, tab]);
+
+  const emailAlreadyExists =
+    tab === 'register' &&
+    emailExistsState.exists &&
+    emailExistsState.checkedEmail === email.trim().toLowerCase();
 
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -103,16 +157,23 @@ export default function LoginPage() {
       email: validateGikiEmail(email),
       password: validatePassword(password),
     };
+    const batchErr = validateBatchYear(batch);
 
     setTouched({
       name: true,
       email: true,
       password: true,
+      batch: true,
     });
 
     setFieldErrors(errs);
+    setBatchError(batchErr);
 
-    if (Object.values(errs).some(Boolean)) return;
+    if (Object.values(errs).some(Boolean) || batchErr) return;
+    if (emailAlreadyExists) {
+      setAuthError('An account with this email already exists. Please sign in.');
+      return;
+    }
 
     setSubmitting(true);
     setAuthError(null);
@@ -259,6 +320,13 @@ export default function LoginPage() {
                     </span>
                   )}
                 </div>
+
+                <EmailSuggest
+                  value={email}
+                  onPick={(full) =>
+                    change('email', full, setEmail)
+                  }
+                />
 
                 {touched.email &&
                   fieldErrors.email && (
@@ -444,9 +512,9 @@ export default function LoginPage() {
 
                 <div
                   className={`input-wrap ${
-                    touched.email && fieldErrors.email
+                    (touched.email && fieldErrors.email) || emailAlreadyExists
                       ? 'has-err'
-                      : touched.email && emailValid
+                      : touched.email && emailValid && !emailAlreadyExists
                       ? 'has-ok'
                       : ''
                   }`}
@@ -454,7 +522,7 @@ export default function LoginPage() {
                   <input
                     type="email"
                     className={`input ${
-                      touched.email && fieldErrors.email ? 'error' : ''
+                      (touched.email && fieldErrors.email) || emailAlreadyExists ? 'error' : ''
                     }`}
                     placeholder="u2023633@giki.edu.pk"
                     value={email}
@@ -467,18 +535,52 @@ export default function LoginPage() {
                     onBlur={() => blur('email', email)}
                   />
 
-                  {touched.email && emailValid && (
+                  {touched.email && emailValid && !emailAlreadyExists && (
                     <span className="adorn ok">
                       <CheckCirc />
                     </span>
                   )}
                 </div>
 
+                <EmailSuggest
+                  value={email}
+                  onPick={(full) => change('email', full, setEmail)}
+                />
+
                 {touched.email && fieldErrors.email && (
                   <div className="err">
                     <Warning />
                     {fieldErrors.email}
                   </div>
+                )}
+                {!fieldErrors.email && emailAlreadyExists && (
+                  <div className="err">
+                    <Warning />
+                    An account with this email already exists.{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTab('signin');
+                        setAuthError(null);
+                        setFieldErrors({});
+                        setTouched({});
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: 'var(--teal-700)',
+                        fontWeight: 800,
+                        textDecoration: 'underline',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Sign in instead
+                    </button>
+                  </div>
+                )}
+                {!fieldErrors.email && !emailAlreadyExists && emailExistsState.checking && (
+                  <div className="hint">Checking availability…</div>
                 )}
               </div>
             </div>
@@ -558,18 +660,30 @@ export default function LoginPage() {
 
                 <input
                   type="text"
-                  className="input"
+                  inputMode="numeric"
+                  className={`input ${batchError ? 'error' : ''}`}
                   placeholder="2022"
                   value={batch}
                   maxLength={4}
-                  onChange={(e) =>
-                    setBatch(
-                      e.target.value
-                        .replace(/\D/g, '')
-                        .slice(0, 4)
-                    )
-                  }
+                  onChange={(e) => {
+                    const next = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    setBatch(next);
+                    // Only show the error once the user has finished typing
+                    // 4 digits — otherwise "2" would flag "min 2018".
+                    if (next.length === 4 || batchError) {
+                      setBatchError(validateBatchYear(next));
+                    }
+                  }}
+                  onBlur={() => setBatchError(validateBatchYear(batch))}
                 />
+                {batchError ? (
+                  <div className="err">
+                    <Warning />
+                    {batchError}
+                  </div>
+                ) : (
+                  <div className="hint">2018 – 2025 only.</div>
+                )}
               </div>
             </div>
 

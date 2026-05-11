@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TopBar from '../components/layout/TopBar';
 import BottomNav from '../components/layout/BottomNav';
 import api from '../lib/api';
 import Spinner from '../components/ui/Spinner';
+import EmailSuggest from '../components/ui/EmailSuggest';
+import { validateGikiEmail } from '../lib/validators';
 import { Warning, CheckCirc } from '../components/ui/Icon';
 
 export default function ComplaintsPage() {
@@ -13,11 +15,21 @@ export default function ComplaintsPage() {
 
   const [againstRole, setAgainstRole] = useState('seller');
   const [againstEmail, setAgainstEmail] = useState('');
+  const [emailTouched, setEmailTouched] = useState(false);
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [ok, setOk] = useState(null);
+
+  // Validate the reported user's email *as they type*. The chip only shows the
+  // error once the user has typed something past the local-part stage so they
+  // aren't shouted at on first keystroke.
+  const emailError = useMemo(
+    () => validateGikiEmail(againstEmail),
+    [againstEmail]
+  );
+  const showEmailError = emailTouched && !!emailError && againstEmail.includes('@');
 
   const loadMine = () => {
     setLoading(true);
@@ -33,6 +45,11 @@ export default function ComplaintsPage() {
     e.preventDefault();
     setError(null);
     setOk(null);
+    setEmailTouched(true);
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
     setSubmitting(true);
     try {
       await api.post('/complaints', {
@@ -44,6 +61,8 @@ export default function ComplaintsPage() {
       setOk('Complaint submitted. Our admins will review it.');
       setSubject('');
       setDescription('');
+      setAgainstEmail('');
+      setEmailTouched(false);
       loadMine();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to submit complaint.');
@@ -86,7 +105,28 @@ export default function ComplaintsPage() {
 
             <div className="field" style={{ marginTop: 10 }}>
               <label>Reported user email</label>
-              <input className="input" value={againstEmail} onChange={(e) => setAgainstEmail(e.target.value)} placeholder="u2023xxx@giki.edu.pk" />
+              <input
+                className={`input ${showEmailError ? 'error' : ''}`}
+                value={againstEmail}
+                onChange={(e) => {
+                  setAgainstEmail(e.target.value);
+                  if (e.target.value.includes('@')) setEmailTouched(true);
+                }}
+                onBlur={() => setEmailTouched(true)}
+                placeholder="u2023xxx@giki.edu.pk"
+                autoComplete="off"
+                spellCheck={false}
+                autoCapitalize="none"
+              />
+              <EmailSuggest
+                value={againstEmail}
+                onPick={(full) => { setAgainstEmail(full); setEmailTouched(true); }}
+              />
+              {showEmailError && (
+                <div className="err">
+                  <Warning /> {emailError}
+                </div>
+              )}
             </div>
 
             <div className="field" style={{ marginTop: 10 }}>
@@ -106,7 +146,11 @@ export default function ComplaintsPage() {
               />
             </div>
 
-            <button className="btn btn-primary btn-block" disabled={submitting} style={{ marginTop: 14, height: 52 }}>
+            <button
+              className="btn btn-primary btn-block"
+              disabled={submitting || !!emailError}
+              style={{ marginTop: 14, height: 52 }}
+            >
               {submitting ? 'Submitting…' : 'Submit complaint'}
             </button>
           </form>

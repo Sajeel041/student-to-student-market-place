@@ -465,6 +465,7 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
   line-height: 1.35;
 }
 
+/* Default (desktop / tablet): dropdown anchored under the bell button. */
 .notif-popover {
   position: absolute;
   right: 0;
@@ -477,6 +478,24 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
   backdrop-filter: blur(10px);
   overflow: hidden;
   z-index: 50;
+}
+
+/* Mobile: anchor the popover to the viewport instead of the bell button.
+   `right:0` from the bell button can clip on the left edge when the button
+   sits inset from the screen edge, so we switch to a fixed sheet that always
+   slides in under the top bar with safe side gutters. */
+@media (max-width: 767px) {
+  .notif-popover {
+    position: fixed;
+    top: calc(var(--topbar-h) + 8px);
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: calc(100vw - 24px);
+    box-shadow: 0 18px 50px rgba(0,0,0,.22);
+    z-index: 200;
+  }
+  .notif-popover-list { max-height: 60vh; }
 }
 
 .notif-popover-top {
@@ -1558,6 +1577,51 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
 .login-form { display: flex; flex-direction: column; gap: 14px; }
 .login-hint { font-size: 12px; color: var(--muted); text-align: center; }
 
+/* Make scrollIntoView on the products list leave breathing room under the
+   fixed top-bar (used when a mobile user taps a category). */
+.home-products-anchor {
+  scroll-margin-top: calc(var(--topbar-h) + 12px);
+}
+
+/* ─── Email autocompletion chip ────────────────────────────────── */
+.email-suggest {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: var(--teal-50);
+  border: 1px solid var(--teal-100);
+  border-radius: 10px;
+  color: var(--teal-900);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .12s ease, transform .08s ease, border-color .12s ease;
+  max-width: 100%;
+  text-align: left;
+}
+.email-suggest:hover { background: var(--teal-100); border-color: var(--teal-300); }
+.email-suggest:active { transform: scale(.98); }
+.email-suggest-label { color: var(--muted); font-weight: 600; }
+.email-suggest-value {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--teal-900);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.email-suggest-hint {
+  margin-left: 4px;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
 /* ─── Toast ────────────────────────────────────────────────────── */
 .toast-wrap {
   position: fixed; bottom: calc(var(--nav-h) + 12px);
@@ -1635,32 +1699,46 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
   height: var(--nav-h);
   background: var(--cream);
   border-top: 1px solid var(--border);
-  display: flex; align-items: center;
+  /* Grid layout so the "+" slot stays anchored to the middle column of five
+     evenly-sized cells. Flex with `flex:1` was nominally equal, but adjacent
+     items with longer labels could squeeze the centre slot off-axis. */
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
   z-index: 100;
 }
 .bn-item {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 3px; padding: 8px 4px;
   font-size: 10px; font-weight: 500; color: var(--subtle);
   border: none; background: none; cursor: pointer;
   transition: color .15s;
+  height: 100%;
 }
 .bn-item:hover { color: var(--ink-3); }
 .bn-item.active { color: var(--teal-700); }
 .bn-item svg { width: 22px; height: 22px; }
-.bn-sell {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  border: none; cursor: pointer; background: none; padding: 0;
-}
-.bn-sell > * {
-  width: 50px; height: 50px; border-radius: 15px;
-  background: linear-gradient(135deg, var(--teal-700), var(--teal-500));
+
+/* Sell ("+") slot — kept perfectly centred by the grid. */
+.bn-sell-slot {
   display: flex; align-items: center; justify-content: center;
-  color: #fff; box-shadow: 0 4px 12px rgba(15,118,110,.35);
-  transition: transform .15s, box-shadow .15s;
+  height: 100%;
 }
-.bn-sell:hover > * { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(15,118,110,.4); }
-.bn-sell svg { width: 24px; height: 24px; }
+.bn-sell {
+  display: flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; border-radius: 18px;
+  background: linear-gradient(135deg, var(--teal-700), var(--teal-500));
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(15,118,110,.4);
+  border: 4px solid var(--cream); /* "punched-through" pill effect */
+  margin-top: -16px; /* lift the button above the bar to make centring obvious */
+  transition: transform .15s, box-shadow .15s;
+  padding: 0;
+  cursor: pointer;
+}
+.bn-sell:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(15,118,110,.48); }
+.bn-sell:active { transform: scale(.96); }
+.bn-sell svg { width: 26px; height: 26px; }
 
 /* ─── HomePage component classes ───────────────────────────────── */
 .view {
@@ -3169,16 +3247,31 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
 .cart-drawer-btn-checkout:active { transform: scale(.98); }
 
 /* ─── Checkout page ───────────────────────────────────────────────── */
+/* Page-level shell so the checkout flow is centred and never spills out of
+   the mobile viewport. */
+.checkout-page-shell {
+  overflow-x: hidden;
+}
 .checkout-progress {
   display: flex; align-items: center;
-  padding: 10px 20px;
+  padding: 10px 16px;
   background: var(--cream); border-bottom: 1px solid var(--border);
   padding-top: calc(var(--topbar-h) + 10px);
+  /* Keep the steps from spilling when labels grow on narrow screens. */
+  flex-wrap: nowrap;
+  overflow-x: hidden;
 }
 .cp-step {
   display: flex; align-items: center; gap: 6px;
   font-size: 12px; font-weight: 600; color: var(--subtle);
   flex-shrink: 0;
+  min-width: 0;
+  white-space: nowrap;
+}
+@media (max-width: 360px) {
+  /* Very narrow phones: hide the inactive labels so the progress bar fits. */
+  .cp-step:not(.active) { font-size: 0; gap: 0; }
+  .cp-step:not(.active) .cp-dot { font-size: 10px; }
 }
 .cp-step.active { color: var(--teal-700); }
 .cp-step.done { color: var(--ink-3); }
@@ -3190,9 +3283,16 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
 }
 .cp-step.active .cp-dot { background: var(--teal-700); color: #fff; }
 .cp-step.done .cp-dot { background: var(--teal-500); color: #fff; }
-.cp-line { flex: 1; height: 2px; background: var(--border); margin: 0 8px; border-radius: 1px; }
+.cp-line { flex: 1; min-width: 12px; height: 2px; background: var(--border); margin: 0 6px; border-radius: 1px; }
 .cp-line.done { background: var(--teal-500); }
-.checkout-body { padding: 20px 20px 120px; overflow-y: auto; }
+.checkout-body {
+  padding: 16px 16px 24px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+.checkout-body > * { max-width: 100%; }
 .sec-title { font-size: 16px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
 .sec-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
 .slot {
@@ -3217,7 +3317,8 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
 .slot-sub { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); margin-top: 3px; }
 .order-recap {
   background: #fff; border: 1px solid var(--border);
-  border-radius: var(--radius-lg); padding: 16px; margin-top: 20px;
+  border-radius: var(--radius-lg); padding: 14px; margin-top: 20px;
+  width: 100%; max-width: 100%;
 }
 .order-recap h4 {
   font-size: 12px; font-weight: 700; color: var(--muted);
@@ -3251,7 +3352,8 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
 .card-preview .cp-lbl { font-size: 9px; opacity: .6; text-transform: uppercase; letter-spacing: .08em; color: #fff; }
 .card-preview .cp-val { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: #fff; }
 .card-preview .cp-brand { position: absolute; top: 20px; right: 20px; font-size: 13px; font-weight: 800; color: rgba(255,255,255,.85); letter-spacing: .02em; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; min-width: 0; }
+.form-grid > * { min-width: 0; }
 .input-pre {
   padding: 0 12px; font-size: 13px; font-weight: 600; color: var(--muted);
   font-family: var(--font-mono); border-right: 1px solid var(--border-2);
@@ -3270,18 +3372,20 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 12px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   background: var(--cream);
   position: sticky;
   bottom: 0;
+  width: 100%;
+  max-width: 100%;
 }
 .checkout-cta .btn {
   width: 100%;
   max-width: 420px;
-  min-width: min(100%, 260px);
-  padding-left: 28px;
-  padding-right: 28px;
+  min-width: 0; /* let it shrink on tiny phones */
+  padding-left: 20px;
+  padding-right: 20px;
 }
 .checkout-cta--success { justify-content: center; }
 .success-mark { width: 72px; height: 72px; border-radius: 50%; background: var(--teal-50); border: 2px solid var(--teal-100); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }

@@ -6,10 +6,12 @@
   "scripts": {
     "build": "npm install --prefix ../client --include=dev && npm run build --prefix ../client",
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "migrate:uploads": "node src/scripts/migrate-uploads-to-cloudinary.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

@@ -183,7 +183,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <>
+    <div className="page checkout-page-shell">
       <div className="topbar with-border">
         <button className="back-btn" onClick={() => step === 1 ? navigate('/cart') : setStep(1)} aria-label="Back">
           <ArrowLeft />
@@ -385,13 +385,13 @@ export default function CheckoutPage() {
           </button>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
 function SuccessScreen({ orderId, slot, method, cardNum, wallet, total, navigate }) {
   return (
-    <div className="checkout-success">
+    <div className="page checkout-page-shell checkout-success">
       <div className="success-mark"><CheckCirc /></div>
       <h1>Order placed!</h1>
       <p className="success-sub">Your seller has been notified. Money is held safely until you confirm pickup.</p>

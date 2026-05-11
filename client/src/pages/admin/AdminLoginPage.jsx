@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { validateGikiEmail, validatePassword } from '../../lib/validators';
 import { ShieldCheck, ArrowRight, Warning, Eye, EyeOff } from '../../components/ui/Icon';
 import Spinner from '../../components/ui/Spinner';
+import EmailSuggest from '../../components/ui/EmailSuggest';
 import './admin.css';
 
 export default function AdminLoginPage() {
@@ -96,6 +97,8 @@ export default function AdminLoginPage() {
               className={fieldErrors.email ? 'has-error' : ''}
               type="email"
               autoComplete="username"
+              spellCheck={false}
+              autoCapitalize="none"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -103,6 +106,15 @@ export default function AdminLoginPage() {
                 if (fieldErrors.email) setFieldErrors((x) => ({ ...x, email: null }));
               }}
               placeholder="u2023633@giki.edu.pk"
+            />
+            <EmailSuggest
+              value={email}
+              onPick={(full) => {
+                setEmail(full);
+                setError(null);
+                if (fieldErrors.email) setFieldErrors((x) => ({ ...x, email: null }));
+              }}
+              id="admin-email"
             />
             {fieldErrors.email && <span className="admin-login-field-err">{fieldErrors.email}</span>}
           </div>
