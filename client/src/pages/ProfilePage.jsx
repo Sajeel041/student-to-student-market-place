@@ -6,6 +6,7 @@ import TopBar from '../components/layout/TopBar';
 import BottomNav from '../components/layout/BottomNav';
 import ListingCard from '../components/ui/ListingCard';
 import Spinner from '../components/ui/Spinner';
+import EditProfileModal from '../components/ui/EditProfileModal';
 import { Verified, Tag, HeartO, Star, Check, LogOut, Warning } from '../components/ui/Icon';
 import { fmtPrice, fmtDate } from '../utils/format';
 
@@ -24,6 +25,7 @@ export default function ProfilePage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('selling');
+  const [editOpen, setEditOpen] = useState(false);
 
   const refreshMine = useCallback(async () => {
     if (!isOwn || !me?._id) return;
@@ -170,7 +172,7 @@ export default function ProfilePage() {
 
         {isOwn && (
           <div className="profile-actions">
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/settings')}>Edit profile</button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setEditOpen(true)}>Edit profile</button>
             <button className="btn btn-secondary btn-sm" onClick={() => navigate('/sell')}>+ Post listing</button>
             <button
               className="btn btn-secondary btn-sm"
@@ -343,6 +345,15 @@ export default function ProfilePage() {
       </div>
 
       <BottomNav />
+
+      {isOwn && (
+        <EditProfileModal
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          profile={profile}
+          onSaved={(updated) => setProfile(p => ({ ...p, ...updated }))}
+        />
+      )}
     </div>
   );
 }

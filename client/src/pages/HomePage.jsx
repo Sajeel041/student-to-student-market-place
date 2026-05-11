@@ -21,10 +21,16 @@ export default function HomePage() {
   // a category we scroll the user down to the filtered results. We roll our own
   // tween (rather than `scrollIntoView({behavior:'smooth'})`) because the
   // native implementation is too quick — about 300ms regardless of distance —
-  // and feels jumpy. A 900ms eased motion reads as intentional.
+  // and feels jumpy. A long, ease-out motion reads as intentional and lets
+  // the user follow the filtering happening on screen.
   const pickCategory = (id) => {
     setCat(id);
-    requestAnimationFrame(() => {
+
+    // Wait two animation frames so React has fully committed the re-render and
+    // the products list below has its final height. Measuring on the very next
+    // frame can produce a stale target (the old, unfiltered list), which
+    // sometimes resolved to a tiny scroll distance and felt instantaneous.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
       const isMobile =
         typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
       if (!isMobile || !productsRef.current) return;
@@ -50,19 +56,20 @@ export default function HomePage() {
       const distance = targetY - startY;
       if (Math.abs(distance) < 4) return;
 
-      const duration = 900;
+      // Longer duration + decelerating ease-out feels noticeably smoother
+      // than the previous 900 ms ease-in-out which "blew past" the middle.
+      const duration = 1200;
       const startTime = performance.now();
-      const easeInOutCubic = (t) =>
-        t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const easeOutQuart = (t) => 1 - Math.pow(1 - t, 4);
 
       const step = (now) => {
         const elapsed = now - startTime;
         const t = Math.min(1, elapsed / duration);
-        window.scrollTo(0, startY + distance * easeInOutCubic(t));
+        window.scrollTo(0, startY + distance * easeOutQuart(t));
         if (t < 1) requestAnimationFrame(step);
       };
       requestAnimationFrame(step);
-    });
+    }));
   };
 
   useEffect(() => {
