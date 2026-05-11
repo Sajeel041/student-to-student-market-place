@@ -12,23 +12,59 @@ const createOrder = async (req, res) => {
     if (!pickupSlot) return res.status(400).json({ message: 'Pickup slot required' });
     if (!pickupLocation) return res.status(400).json({ message: 'Pickup location required' });
 
-    const listingIds = items.map(i => i.listingId);
-    const listings = await Listing.find({ _id: { $in: listingIds }, status: 'active' })
+    // Accept either `listingId` or `listing` (the client sends `listing` to
+    // match the Order.items schema). Filter out empties before querying.
+    const normalized = items
+      .map(i => ({
+        ...i,
+        listingId: String(i.listingId || i.listing || '').trim(),
+      }))
+      .filter(i => i.listingId);
+
+    if (!normalized.length) {
+      return res.status(400).json({ message: 'Order items are missing a listing reference.' });
+    }
+
+    const listingIds = normalized.map(i => i.listingId);
+    const listings = await Listing.find({ _id: { $in: listingIds } })
       .populate('seller', 'name');
 
-    if (listings.length !== items.length) {
-      return res.status(400).json({ message: 'One or more items are no longer available' });
+    // Detect specifically which listing failed so we can return a useful error.
+    const foundIds = new Set(listings.map(l => l._id.toString()));
+    const missing = normalized.filter(i => !foundIds.has(i.listingId));
+    if (missing.length) {
+      return res.status(400).json({
+        message: 'One or more items could not be found.',
+        missing: missing.map(i => i.listingId),
+      });
+    }
+
+    const inactive = listings.filter(l => l.status !== 'active');
+    if (inactive.length) {
+      return res.status(400).json({
+        message:
+          inactive.length === 1
+            ? `"${inactive[0].title}" is no longer available.`
+            : `${inactive.length} items in your cart are no longer available.`,
+        unavailable: inactive.map(l => ({ id: l._id, title: l.title, status: l.status })),
+      });
     }
 
     const orderItems = listings.map(l => {
-      const item = items.find(i => i.listingId === l._id.toString());
+      const item = normalized.find(i => i.listingId === l._id.toString());
+      // Allow the client to pass a negotiated/accepted offer price, but never
+      // a price greater than the listing's own price.
+      const requestedPrice = Number(item?.price);
+      const price = Number.isFinite(requestedPrice) && requestedPrice > 0 && requestedPrice <= l.price
+        ? requestedPrice
+        : l.price;
       return {
         listing: l._id,
         title: l.title,
-        price: l.price,
+        price,
         qty: item?.qty || 1,
         sellerName: l.seller?.name || 'Seller',
-        pickupLocation: l.pickup,
+        pickupLocation: item?.pickupLocation || l.pickup,
       };
     });
 
@@ -44,15 +80,17 @@ const createOrder = async (req, res) => {
       pickupSlot, pickupLocation,
     });
 
-    // Mark all listings as sold and update seller soldCount
-    for (const l of listings) {
-      await Listing.findByIdAndUpdate(l._id, { status: 'sold' });
-      await User.findByIdAndUpdate(l.seller._id, { $inc: { soldCount: 1 } });
-    }
+    // Mark all listings as sold and update seller soldCount (in parallel).
+    await Promise.all(
+      listings.flatMap(l => [
+        Listing.findByIdAndUpdate(l._id, { status: 'sold' }),
+        User.findByIdAndUpdate(l.seller._id, { $inc: { soldCount: 1 } }),
+      ])
+    );
 
     return res.status(201).json(order);
   } catch (err) {
-    console.error(err);
+    console.error('createOrder failed:', err);
     return res.status(500).json({ message: 'Server error placing order' });
   }
 };

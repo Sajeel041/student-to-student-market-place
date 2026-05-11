@@ -326,8 +326,11 @@ export default function CheckoutPage() {
 
               <div className="field">
                 <label>Card number <span className="req">*</span></label>
-                <input className={`input ${touched.cardNum && errors.cardNum ? 'error' : ''}`} placeholder="1234 5678 9012 3456" value={cardNum} inputMode="numeric" autoComplete="cc-number" onChange={e => change('cardNum', fmtCard(e.target.value), setCardNum)} onBlur={() => blur('cardNum', cardNum)} style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }} />
-                {touched.cardNum && errors.cardNum && <div className="err"><Warning /> {errors.cardNum}</div>}
+                <input className={`input ${touched.cardNum && errors.cardNum ? 'error' : ''}`} placeholder="4242 4242 4242 4242" value={cardNum} inputMode="numeric" autoComplete="cc-number" onChange={e => change('cardNum', fmtCard(e.target.value), setCardNum)} onBlur={() => blur('cardNum', cardNum)} style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }} />
+                {touched.cardNum && errors.cardNum
+                  ? <div className="err"><Warning /> {errors.cardNum}</div>
+                  : <div className="field-hint">Demo only — use any valid card or the test card <code>4242 4242 4242 4242</code>.</div>
+                }
               </div>
 
               <div className="form-grid">
