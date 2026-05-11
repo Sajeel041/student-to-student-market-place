@@ -89,7 +89,11 @@ const getAdminListings = async (req, res) => {
   try {
     const { status, category, q, page = 1, limit = 20 } = req.query;
     const filter = {};
-    if (status) filter.status = status;
+    if (status) {
+      // Allow comma-separated lists e.g. "sold,archived"
+      const list = String(status).split(',').map(s => s.trim()).filter(Boolean);
+      filter.status = list.length > 1 ? { $in: list } : list[0];
+    }
     if (category) filter.category = category;
     if (q) filter.title = { $regex: q, $options: 'i' };
 

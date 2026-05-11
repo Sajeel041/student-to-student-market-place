@@ -20,10 +20,10 @@ export default function AdminDashboard() {
   if (!stats) return <div style={{ padding: 40, color: 'var(--muted)' }}>Failed to load stats.</div>;
 
   const cards = [
-    { label: 'Total Users', value: stats.users, icon: <Users />, color: 'var(--teal-700)' },
-    { label: 'Active Listings', value: stats.listings, icon: <Package />, color: 'var(--teal-600)' },
-    { label: 'Total Orders', value: stats.orders, icon: <ShieldCheck />, color: 'var(--amber)' },
-    { label: 'Total Revenue', value: fmtPrice(stats.revenue || 0), icon: <BarChartIcon />, color: 'var(--green)' },
+    { label: 'Total Users',     value: stats.totalUsers ?? stats.users ?? 0,        icon: <Users />,        color: 'var(--teal-700)' },
+    { label: 'Active Listings', value: stats.totalListings ?? stats.listings ?? 0,  icon: <Package />,      color: 'var(--teal-600)' },
+    { label: 'Total Orders',    value: stats.totalOrders ?? stats.orders ?? 0,      icon: <ShieldCheck />,  color: 'var(--amber)' },
+    { label: 'Total Revenue',   value: fmtPrice(stats.totalRevenue ?? stats.revenue ?? 0), icon: <BarChartIcon />, color: 'var(--green)' },
   ];
 
   return (
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
           <ResponsiveContainer width="100%" height={240}>
             <BarChart data={stats.categoryBreakdown} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="_id" tick={{ fontSize: 11, fontFamily: 'var(--font-mono)' }} />
+              <XAxis dataKey="category" tick={{ fontSize: 11, fontFamily: 'var(--font-mono)' }} />
               <YAxis tick={{ fontSize: 11, fontFamily: 'var(--font-mono)' }} />
               <Tooltip
                 contentStyle={{ fontFamily: 'var(--font-mono)', fontSize: 12, borderRadius: 8, border: '1px solid var(--border)' }}
