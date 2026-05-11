@@ -9,9 +9,9 @@ const ICONS = {
 export default function Toast({ toast, onDismiss }) {
   const Ico = ICONS[toast?.kind] || Check;
   return (
-    <div className={`toast ${toast ? 'show' : ''}`} role="status" aria-live="polite">
+    <div className="toast-wrap" role="status" aria-live="polite">
       {toast && (
-        <>
+        <div className={`toast ${toast.kind || ''} show`}>
           <span className="ico"><Ico /></span>
           <span>{toast.msg}</span>
           {toast.undo && (
@@ -27,7 +27,7 @@ export default function Toast({ toast, onDismiss }) {
           >
             <X style={{ width: 14, height: 14 }} />
           </button>
-        </>
+        </div>
       )}
     </div>
   );

@@ -7,7 +7,8 @@ import BottomNav from '../components/layout/BottomNav';
 import ListingCard from '../components/ui/ListingCard';
 import Spinner from '../components/ui/Spinner';
 import EditProfileModal from '../components/ui/EditProfileModal';
-import { Verified, Tag, HeartO, Star, Check, LogOut, Warning } from '../components/ui/Icon';
+import ReviewModal from '../components/ui/ReviewModal';
+import { Verified, Tag, HeartO, Star, Check, LogOut, Warning, Clock } from '../components/ui/Icon';
 import { fmtPrice, fmtDate } from '../utils/format';
 
 export default function ProfilePage() {
@@ -26,6 +27,10 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('selling');
   const [editOpen, setEditOpen] = useState(false);
+  const [ordersFilter, setOrdersFilter] = useState('pending');
+  const [myReviews, setMyReviews] = useState([]);
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [orderBusyId, setOrderBusyId] = useState(null);
 
   const refreshMine = useCallback(async () => {
     if (!isOwn || !me?._id) return;
@@ -60,6 +65,11 @@ export default function ProfilePage() {
     if (isOwn) {
       fetches.push(api.get('/users/me/saved').then(r => setSavedListings(r.data)));
       fetches.push(api.get('/orders').then(r => setOrders(r.data)));
+      fetches.push(
+        api.get('/reviews/mine')
+          .then(r => setMyReviews(r.data || []))
+          .catch(() => setMyReviews([]))
+      );
     }
     Promise.all(fetches).catch(() => {}).finally(() => setLoading(false));
   }, [targetId, isOwn]);
@@ -71,7 +81,9 @@ export default function ProfilePage() {
   );
   if (!profile) return null;
 
-  const soldOrders = orders.filter(o => o.status === 'picked_up' || o.status === 'confirmed');
+  const pendingOrders   = orders.filter(o => o.status === 'placed' || o.status === 'confirmed');
+  const completedOrders = orders.filter(o => o.status === 'picked_up');
+  const reviewedOrderIds = new Set(myReviews.map(r => String(r.order)));
 
   const myActiveListings = isOwn
     ? activeListings.filter((l) => l.status === 'active')
@@ -82,6 +94,26 @@ export default function ProfilePage() {
   const myUnlistedListings = isOwn
     ? activeListings.filter((l) => l.status === 'archived')
     : [];
+
+  const markOrderPickedUp = async (orderId) => {
+    if (!window.confirm('Confirm you have picked up this order? Payment will be released to the seller.')) return;
+    setOrderBusyId(orderId);
+    try {
+      const r = await api.patch(`/orders/${orderId}/status`, { status: 'picked_up' });
+      setOrders(prev => prev.map(o => o._id === orderId ? r.data : o));
+    } catch (err) {
+      window.alert(err?.response?.data?.message || 'Could not update order.');
+    } finally {
+      setOrderBusyId(null);
+    }
+  };
+
+  const onReviewSubmitted = (review) => {
+    setMyReviews(prev => [review, ...prev]);
+    // Also refresh the public reviews list if the buyer is viewing their own
+    // profile and just reviewed a seller — though that only matters when the
+    // current user is the reviewee, which can't happen here. Safe no-op.
+  };
 
   const updateStatus = async (id, status) => {
     const label =
@@ -102,7 +134,7 @@ export default function ProfilePage() {
   const tabs = [
     { id: 'selling', label: 'Selling', count: myActiveListings.length },
     ...(isOwn ? [{ id: 'unlisted', label: 'Unlisted', count: myUnlistedListings.length }] : []),
-    ...(isOwn ? [{ id: 'sold', label: 'Sold', count: soldOrders.length }] : []),
+    ...(isOwn ? [{ id: 'orders', label: 'Orders', count: orders.length }] : []),
     ...(isOwn ? [{ id: 'saved', label: 'Saved', count: savedListings.length }] : []),
     { id: 'reviews', label: 'Reviews', count: reviews.length },
   ];
@@ -252,37 +284,125 @@ export default function ProfilePage() {
           )
         )}
 
-        {tab === 'sold' && isOwn && (
-          soldOrders.length ? (
-            <div style={{ padding: '0 20px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {soldOrders.map(order => (
-                <div
-                  key={order._id}
-                  style={{ background: 'white', borderRadius: 16, border: '1px solid var(--border)', padding: '14px 16px', cursor: 'pointer' }}
-                  onClick={() => navigate(`/order/${order._id}`)}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--muted)' }}>{order.orderNumber}</span>
-                    <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Check style={{ width: 12, height: 12 }} /> {order.status === 'picked_up' ? 'Picked up' : 'Confirmed'}
-                    </span>
+        {tab === 'orders' && isOwn && (
+          <div className="orders-tab-wrap">
+            <div className="orders-subtabs">
+              <button
+                type="button"
+                className={`orders-subtab${ordersFilter === 'pending' ? ' active' : ''}`}
+                onClick={() => setOrdersFilter('pending')}
+              >
+                <Clock style={{ width: 14, height: 14 }} /> Pending
+                <span className="orders-subtab-count">{pendingOrders.length}</span>
+              </button>
+              <button
+                type="button"
+                className={`orders-subtab${ordersFilter === 'completed' ? ' active' : ''}`}
+                onClick={() => setOrdersFilter('completed')}
+              >
+                <Check style={{ width: 14, height: 14 }} /> Completed
+                <span className="orders-subtab-count">{completedOrders.length}</span>
+              </button>
+            </div>
+
+            {(() => {
+              const list = ordersFilter === 'pending' ? pendingOrders : completedOrders;
+              if (!list.length) {
+                return (
+                  <div className="empty">
+                    <div className="ico">{ordersFilter === 'pending' ? <Clock /> : <Check />}</div>
+                    <h3>
+                      {ordersFilter === 'pending' ? 'No pending pickups' : 'No completed orders'}
+                    </h3>
+                    <p>
+                      {ordersFilter === 'pending'
+                        ? 'Orders you have placed but not yet picked up will appear here.'
+                        : 'Orders you have picked up will appear here, where you can review the seller.'}
+                    </p>
                   </div>
-                  {order.items.map((item, i) => (
-                    <div key={i} style={{ fontSize: 13, fontWeight: 600 }}>{item.title}</div>
-                  ))}
-                  <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13, color: 'var(--teal-700)' }}>
-                    {fmtPrice(order.total)}
-                  </div>
+                );
+              }
+              return (
+                <div className="order-card-list">
+                  {list.map(order => {
+                    const firstItem = order.items?.[0];
+                    const seller = firstItem?.listing?.seller;
+                    const sellerName = seller?.name || firstItem?.sellerName || 'Seller';
+                    const reviewed = reviewedOrderIds.has(String(order._id));
+                    return (
+                      <div key={order._id} className="order-card">
+                        <button
+                          type="button"
+                          className="order-card-body"
+                          onClick={() => navigate(`/order/${order._id}`)}
+                        >
+                          <div className="order-card-top">
+                            <span className="mono order-card-num">{order.orderNumber}</span>
+                            <span className={`admin-badge ${order.status}`}>
+                              {order.status.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          <div className="order-card-items">
+                            {order.items.map((it, i) => (
+                              <div key={i} className="order-card-item-row">
+                                <span className="order-card-item-title">{it.title}</span>
+                                {it.qty > 1 && <span className="order-card-item-qty">× {it.qty}</span>}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="order-card-meta">
+                            <span>Sold by <strong>{sellerName}</strong></span>
+                            <span>· {order.pickupSlot}</span>
+                          </div>
+                          <div className="order-card-foot">
+                            <span className="order-card-date">{fmtDate(order.createdAt)}</span>
+                            <span className="order-card-total mono">{fmtPrice(order.total)}</span>
+                          </div>
+                        </button>
+
+                        <div className="order-card-actions">
+                          {ordersFilter === 'pending' && (
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              disabled={orderBusyId === order._id}
+                              onClick={() => markOrderPickedUp(order._id)}
+                            >
+                              {orderBusyId === order._id ? 'Saving…' : 'I picked it up'}
+                            </button>
+                          )}
+                          {ordersFilter === 'completed' && (
+                            reviewed ? (
+                              <span className="order-reviewed-pill">
+                                <Star style={{ width: 12, height: 12 }} /> Review posted
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-sm"
+                                onClick={() => setReviewTarget(order)}
+                                disabled={!seller?._id}
+                                title={!seller?._id ? 'Seller info unavailable for this order.' : undefined}
+                              >
+                                <Star style={{ width: 13, height: 13 }} /> Leave review
+                              </button>
+                            )
+                          )}
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => navigate(`/order/${order._id}`)}
+                          >
+                            Details
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty">
-              <div className="ico"><Check /></div>
-              <h3>No completed orders</h3>
-              <p>Orders marked as picked up will appear here.</p>
-            </div>
-          )
+              );
+            })()}
+          </div>
         )}
 
         {tab === 'saved' && isOwn && (
@@ -352,6 +472,15 @@ export default function ProfilePage() {
           onClose={() => setEditOpen(false)}
           profile={profile}
           onSaved={(updated) => setProfile(p => ({ ...p, ...updated }))}
+        />
+      )}
+
+      {isOwn && (
+        <ReviewModal
+          open={!!reviewTarget}
+          order={reviewTarget}
+          onClose={() => setReviewTarget(null)}
+          onSubmitted={onReviewSubmitted}
         />
       )}
     </div>

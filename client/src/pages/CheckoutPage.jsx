@@ -7,7 +7,7 @@ import {
   ArrowLeft, ArrowRight, CheckCirc, Lock, Pin, Verified, Warning, CardIcon, PhoneIcon,
 } from '../components/ui/Icon';
 import { fmtPrice } from '../utils/format';
-import { PICKUP_SLOTS } from '../utils/constants';
+import { PICKUP_SLOTS, isSlotPast } from '../utils/constants';
 
 const luhn = (num) => {
   const digits = num.replace(/\D/g, '').split('').reverse().map(Number);
@@ -41,11 +41,31 @@ export default function CheckoutPage() {
   const [paymentError, setPaymentError] = useState(null);
   const [placedOrderId, setPlacedOrderId] = useState(null);
   const [offerMap, setOfferMap] = useState({}); // listingId -> accepted offer { amount, pct }
+  const [clockTick, setClockTick] = useState(0);
 
   if (cart.length === 0 && !placedOrderId) {
     navigate('/cart', { replace: true });
     return null;
   }
+
+  // Re-evaluate "is this slot past" once a minute so a user who lingers on
+  // the page doesn't end up picking a slot that just expired.
+  useEffect(() => {
+    const t = setInterval(() => setClockTick(n => n + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // If the currently-selected slot has lapsed while sitting on the page,
+  // clear the selection so the user has to pick again.
+  useEffect(() => {
+    if (!pickupSlot) return;
+    const s = PICKUP_SLOTS.find(x => x.id === pickupSlot);
+    if (s && isSlotPast(s)) {
+      setPickupSlot('');
+      setPickupErr('That time slot just lapsed. Please pick another.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clockTick]);
 
   useEffect(() => {
     let alive = true;
@@ -127,6 +147,12 @@ export default function CheckoutPage() {
 
   const goToPayment = () => {
     if (!pickupSlot) { setPickupErr('Pick a time slot so the seller knows when to meet you.'); return; }
+    const chosen = PICKUP_SLOTS.find(s => s.id === pickupSlot);
+    if (chosen && isSlotPast(chosen)) {
+      setPickupSlot('');
+      setPickupErr('That slot has already passed. Please pick another.');
+      return;
+    }
     setPickupErr(null);
     setStep(2);
   };
@@ -209,21 +235,35 @@ export default function CheckoutPage() {
             <h3 className="sec-title">Choose a pickup slot</h3>
             <p className="sec-sub">All pickups happen on campus. The seller meets you at the time you pick.</p>
             <div className="slot-list">
-              {PICKUP_SLOTS.map(s => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className={`slot ${pickupSlot === s.id ? 'active' : ''}`}
-                  onClick={() => { setPickupSlot(s.id); setPickupErr(null); }}
-                >
-                  <div className="slot-radio">{pickupSlot === s.id && <span />}</div>
-                  <div style={{ flex: 1 }}>
-                    <div className="slot-label">{s.label}</div>
-                    <div className="slot-sub"><Pin style={{ width: 11, height: 11 }} /> {s.sub}</div>
-                  </div>
-                  {pickupSlot === s.id && <CheckCirc style={{ width: 20, height: 20, color: 'var(--teal-700)' }} />}
-                </button>
-              ))}
+              {PICKUP_SLOTS.map(s => {
+                const past = isSlotPast(s);
+                const selected = pickupSlot === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    disabled={past}
+                    aria-disabled={past}
+                    className={`slot ${selected ? 'active' : ''} ${past ? 'past' : ''}`}
+                    onClick={() => {
+                      if (past) return;
+                      setPickupSlot(s.id);
+                      setPickupErr(null);
+                    }}
+                    title={past ? 'This slot has already passed.' : undefined}
+                  >
+                    <div className="slot-radio">{selected && <span />}</div>
+                    <div style={{ flex: 1 }}>
+                      <div className="slot-label">{s.label}</div>
+                      <div className="slot-sub"><Pin style={{ width: 11, height: 11 }} /> {s.sub}</div>
+                    </div>
+                    {past
+                      ? <span className="slot-tag">Time passed</span>
+                      : selected && <CheckCirc style={{ width: 20, height: 20, color: 'var(--teal-700)' }} />
+                    }
+                  </button>
+                );
+              })}
             </div>
             {pickupErr && <div className="err" style={{ marginTop: 10 }}><Warning /> {pickupErr}</div>}
           </div>

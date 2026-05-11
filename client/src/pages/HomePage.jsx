@@ -21,8 +21,8 @@ export default function HomePage() {
   // a category we scroll the user down to the filtered results. We roll our own
   // tween (rather than `scrollIntoView({behavior:'smooth'})`) because the
   // native implementation is too quick — about 300ms regardless of distance —
-  // and feels jumpy. A long, ease-out motion reads as intentional and lets
-  // the user follow the filtering happening on screen.
+  // and feels jumpy. A longer, gently-eased motion reads as intentional and
+  // lets the user follow the filtering happening on screen.
   const pickCategory = (id) => {
     setCat(id);
 
@@ -56,16 +56,24 @@ export default function HomePage() {
       const distance = targetY - startY;
       if (Math.abs(distance) < 4) return;
 
-      // Longer duration + decelerating ease-out feels noticeably smoother
-      // than the previous 900 ms ease-in-out which "blew past" the middle.
-      const duration = 1200;
+      // easeInOutCubic gives a symmetric S-curve: gentle start, accelerates
+      // through the middle, decelerates at the end. Earlier we tried an
+      // ease-out-quart, but with a quartic curve ~94% of the distance is
+      // covered in the first half of the timeline, which visually reads as
+      // an instant jump followed by a long imperceptible tail — exactly the
+      // "quick snap" the user reported. The S-curve feels like a deliberate
+      // glide instead. Duration scales with the distance (within sane
+      // bounds) so a short hop doesn't drag and a long page doesn't whip.
+      const absDistance = Math.abs(distance);
+      const duration = Math.max(700, Math.min(1500, absDistance * 1.3));
       const startTime = performance.now();
-      const easeOutQuart = (t) => 1 - Math.pow(1 - t, 4);
+      const easeInOutCubic = (t) =>
+        t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
       const step = (now) => {
         const elapsed = now - startTime;
         const t = Math.min(1, elapsed / duration);
-        window.scrollTo(0, startY + distance * easeOutQuart(t));
+        window.scrollTo(0, startY + distance * easeInOutCubic(t));
         if (t < 1) requestAnimationFrame(step);
       };
       requestAnimationFrame(step);

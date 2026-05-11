@@ -57,4 +57,18 @@ const getReviewsForUser = async (req, res) => {
   }
 };
 
-module.exports = { createReview, getReviewsForUser };
+// GET /api/reviews/mine — reviews authored by the logged-in user.
+// Used by the profile orders tab to know which orders the user has already
+// reviewed so we can hide the "Leave review" button.
+const getMyReviews = async (req, res) => {
+  try {
+    const reviews = await Review.find({ reviewer: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate('reviewee', 'name handle avatarUrl');
+    return res.json(reviews);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+module.exports = { createReview, getReviewsForUser, getMyReviews };

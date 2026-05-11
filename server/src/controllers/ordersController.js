@@ -100,9 +100,14 @@ const getMyOrders = async (req, res) => {
   try {
     const orders = await Order.find({ buyer: req.user._id })
       .sort({ createdAt: -1 })
-      .populate('items.listing', 'title photos');
+      .populate({
+        path: 'items.listing',
+        select: 'title photos seller',
+        populate: { path: 'seller', select: 'name handle avatarUrl' },
+      });
     return res.json(orders);
   } catch (err) {
+    console.error('getMyOrders failed:', err);
     return res.status(500).json({ message: 'Server error' });
   }
 };
@@ -112,13 +117,18 @@ const getOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
       .populate('buyer', 'name email handle')
-      .populate('items.listing', 'title photos seller');
+      .populate({
+        path: 'items.listing',
+        select: 'title photos seller',
+        populate: { path: 'seller', select: 'name handle avatarUrl' },
+      });
     if (!order) return res.status(404).json({ message: 'Order not found' });
     if (order.buyer._id.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized' });
     }
     return res.json(order);
   } catch (err) {
+    console.error('getOrder failed:', err);
     return res.status(500).json({ message: 'Server error' });
   }
 };
