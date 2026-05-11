@@ -689,6 +689,14 @@
 
 /* ─── Responsive (≤768px) ──────────────────────────────────────── */
 @media (max-width: 768px) {
+  /* Stop laying the root out as a flex row — the mobile bar needs
+     to span the full width and the main content needs to flow below it. */
+  .admin-root {
+    display: block;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
   .admin-mobilebar { display: flex; }
 
   .admin-sidebar {
@@ -711,6 +719,7 @@
 
   .admin-main {
     margin-left: 0;
+    width: 100%;
     padding: 16px 14px 32px;
   }
 
