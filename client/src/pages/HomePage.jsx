@@ -18,17 +18,50 @@ export default function HomePage() {
   const productsRef = useRef(null);
 
   // On mobile the category grid sits above the products list, so after picking
-  // a category we smoothly scroll the user down to the filtered results. The
-  // visual viewport check keeps this from feeling jumpy on tablet / desktop
-  // where everything is already on-screen.
+  // a category we scroll the user down to the filtered results. We roll our own
+  // tween (rather than `scrollIntoView({behavior:'smooth'})`) because the
+  // native implementation is too quick — about 300ms regardless of distance —
+  // and feels jumpy. A 900ms eased motion reads as intentional.
   const pickCategory = (id) => {
     setCat(id);
     requestAnimationFrame(() => {
       const isMobile =
         typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
-      if (isMobile && productsRef.current) {
-        productsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!isMobile || !productsRef.current) return;
+
+      const prefersReducedMotion =
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      const targetEl = productsRef.current;
+      const styles = window.getComputedStyle(targetEl);
+      const offset = parseFloat(styles.scrollMarginTop) || 0;
+      const targetY = Math.max(
+        0,
+        targetEl.getBoundingClientRect().top + window.pageYOffset - offset,
+      );
+
+      if (prefersReducedMotion) {
+        window.scrollTo(0, targetY);
+        return;
       }
+
+      const startY = window.pageYOffset;
+      const distance = targetY - startY;
+      if (Math.abs(distance) < 4) return;
+
+      const duration = 900;
+      const startTime = performance.now();
+      const easeInOutCubic = (t) =>
+        t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+      const step = (now) => {
+        const elapsed = now - startTime;
+        const t = Math.min(1, elapsed / duration);
+        window.scrollTo(0, startY + distance * easeInOutCubic(t));
+        if (t < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
     });
   };
 

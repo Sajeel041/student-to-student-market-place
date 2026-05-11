@@ -98,6 +98,19 @@ export default function TopBar({ onBack, title, kicker, right, withBorder, trans
     return () => document.removeEventListener('mousedown', onDoc);
   }, [notifOpen]);
 
+  // Mobile-only shortcut to Complaints. On ≥768px the same destination is
+  // already in `.topbar-nav`, so we hide this button there via CSS.
+  const complaintsButton = (
+    <button
+      className="back-btn topbar-mobile-only"
+      onClick={() => navigate('/complaints')}
+      aria-label="Complaints"
+      title="Complaints"
+    >
+      <Warning />
+    </button>
+  );
+
   const cartButton = (
     <button
       className="back-btn"
@@ -260,11 +273,13 @@ export default function TopBar({ onBack, title, kicker, right, withBorder, trans
         {right !== undefined ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {right}
+            {complaintsButton}
             {bellButton}
             {cartButton}
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {complaintsButton}
             {bellButton}
             {cartButton}
           </div>

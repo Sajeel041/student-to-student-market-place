@@ -3739,6 +3739,11 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
 /* ─── TopBar desktop nav (hidden on mobile) ──────────────────────── */
 .topbar-nav { display: none; }
 
+/* Mobile-only buttons inside the right cluster of the topbar.
+   On wider viewports the full `.topbar-nav` is visible, so duplicating
+   shortcuts (e.g. Complaints) in the right cluster would be redundant. */
+.topbar-mobile-only { display: inline-flex; }
+
 /* ─── Responsive breakpoints ─────────────────────────────────────── */
 
 @media (min-width: 640px) {
@@ -3811,6 +3816,9 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
     margin-left: auto;
     margin-right: 12px;
   }
+  /* Complaints/etc. already live inside `.topbar-nav` on desktop — hide
+     their duplicate mobile-only buttons in the right cluster. */
+  .topbar-mobile-only { display: none !important; }
   .topbar-nav-item {
     display: flex; align-items: center; gap: 7px;
     padding: 9px 16px;
