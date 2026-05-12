@@ -541,7 +541,7 @@ export default function CheckoutPage() {
                   { id: 'card', label: 'Card', sub: 'Visa, Mastercard', ico: <CardIcon /> },
                   { id: 'jazzcash', label: 'JazzCash', sub: 'Mobile wallet', ico: <PhoneIcon /> },
                   { id: 'easypaisa', label: 'EasyPaisa', sub: 'Mobile wallet', ico: <PhoneIcon /> },
-                  { id: 'cod', label: 'Cash on delivery', sub: 'Pay seller at pickup', ico: <Pin /> },
+                  { id: 'cod', label: 'COD', sub: 'Pay seller at pickup', ico: <Pin /> },
                 ].map(m => (
                   <button
                     key={m.id}
@@ -629,7 +629,7 @@ export default function CheckoutPage() {
 
           {method === 'cod' && (
             <div className="form-section">
-              <h3 className="sec-title">Cash on delivery</h3>
+              <h3 className="sec-title">COD</h3>
               <div className="cod-info">
                 <div className="cod-info-row">
                   <Pin style={{ width: 16, height: 16, flexShrink: 0 }} />
@@ -691,7 +691,7 @@ function SuccessScreen({ orderId, slot, method, cardNum, wallet, total, navigate
     ? `Card · ••${cardNum.replace(/\s/g, '').slice(-4)}`
     : method === 'jazzcash' ? 'JazzCash'
     : method === 'easypaisa' ? 'EasyPaisa'
-    : 'Cash on delivery';
+    : 'COD';
 
   return (
     <div className="page checkout-page-shell checkout-success">

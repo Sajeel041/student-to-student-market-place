@@ -3325,11 +3325,13 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
 }
 .checkout-page-shell .pay-methods-scroll .pay-method {
   flex: 0 0 auto;
-  width: min(74vw, 200px);
-  min-width: 150px;
+  width: min(82vw, 228px);
+  min-width: 168px;
   max-width: none;
   box-sizing: border-box;
   margin-bottom: 0;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 @media (min-width: 700px) {
   .checkout-page-shell .pay-methods-scroll {
@@ -3343,7 +3345,7 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
   .checkout-page-shell .pay-methods-scroll .pay-method {
     flex: 1 1 calc(50% - 5px);
     width: auto;
-    min-width: 0;
+    min-width: 168px;
     max-width: calc(50% - 5px);
   }
 }
@@ -3351,6 +3353,7 @@ select.input { cursor: pointer; appearance: none; background-image: url("data:im
   .checkout-page-shell .pay-methods-scroll .pay-method {
     flex: 1 1 calc(25% - 8px);
     max-width: calc(25% - 8px);
+    min-width: 0;
   }
 }
 
