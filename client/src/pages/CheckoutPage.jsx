@@ -22,7 +22,13 @@ const luhn = (num) => {
 
 const fmtCard = (v) => v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
 const fmtExp = (v) => { const d = v.replace(/\D/g, '').slice(0, 4); return d.length <= 2 ? d : d.slice(0, 2) + '/' + d.slice(2); };
-const fmtWallet = (v) => v.replace(/\D/g, '').slice(0, 11);
+/** National mobile after +92: 10 digits, first digit 3 (no leading 0). */
+const fmtWallet = (v) => {
+  let d = v.replace(/\D/g, '');
+  if (d.startsWith('92')) d = d.slice(2);
+  d = d.replace(/^0+/, '');
+  return d.slice(0, 10);
+};
 
 const isoLocal = (date) => {
   const off = date.getTimezoneOffset() * 60_000;
@@ -142,7 +148,12 @@ export default function CheckoutPage() {
     cardNum: v => { const n = (v || '').replace(/\s/g, ''); if (!n) return 'Enter the 16-digit number.'; if (n.length < 13) return `Too short — ${n.length} digits.`; if (!luhn(n)) return 'Invalid card number.'; return null; },
     exp: v => { if (!v) return 'Enter expiry as MM/YY.'; const m = v.match(/^(\d{2})\/(\d{2})$/); if (!m) return 'Use MM/YY format.'; const mm = parseInt(m[1]); if (mm < 1 || mm > 12) return 'Invalid month.'; return null; },
     cvv: v => { if (!v) return 'Enter the CVV.'; const need = cardBrand === 'Amex' ? 4 : 3; if (v.length !== need) return `CVV should be ${need} digits.`; return null; },
-    wallet: v => { if (!v) return 'Enter your mobile number.'; if (v.length !== 11) return `Need 11 digits, got ${v.length}.`; if (!/^03/.test(v)) return 'Must start with "03".'; return null; },
+    wallet: v => {
+      if (!v) return 'Enter your mobile number.';
+      if (v.length !== 10) return `Enter 10 digits after +92 (${v.length}/10).`;
+      if (!/^3\d{9}$/.test(v)) return 'Use 10 digits starting with 3 (no 0 after +92).';
+      return null;
+    },
   };
 
   const blur = (field, val) => {
@@ -524,27 +535,29 @@ export default function CheckoutPage() {
 
           <div className="form-section">
             <h3 className="sec-title">Payment method</h3>
-            <div className="pay-methods">
-              {[
-                { id: 'card', label: 'Card', sub: 'Visa, Mastercard', ico: <CardIcon /> },
-                { id: 'jazzcash', label: 'JazzCash', sub: 'Mobile wallet', ico: <PhoneIcon /> },
-                { id: 'easypaisa', label: 'EasyPaisa', sub: 'Mobile wallet', ico: <PhoneIcon /> },
-                { id: 'cod', label: 'Cash on delivery', sub: 'Pay seller at pickup', ico: <Pin /> },
-              ].map(m => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className={`pay-method ${method === m.id ? 'active' : ''}`}
-                  onClick={() => { setMethod(m.id); setErrors({}); setTouched({}); setPaymentError(null); }}
-                >
-                  <div className="pm-ico">{m.ico}</div>
-                  <div style={{ flex: 1 }}>
-                    <div className="pm-label">{m.label}</div>
-                    <div className="pm-sub">{m.sub}</div>
-                  </div>
-                  <div className="pm-radio">{method === m.id && <span />}</div>
-                </button>
-              ))}
+            <div className="pay-methods-scroll">
+              <div className="pay-methods">
+                {[
+                  { id: 'card', label: 'Card', sub: 'Visa, Mastercard', ico: <CardIcon /> },
+                  { id: 'jazzcash', label: 'JazzCash', sub: 'Mobile wallet', ico: <PhoneIcon /> },
+                  { id: 'easypaisa', label: 'EasyPaisa', sub: 'Mobile wallet', ico: <PhoneIcon /> },
+                  { id: 'cod', label: 'Cash on delivery', sub: 'Pay seller at pickup', ico: <Pin /> },
+                ].map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className={`pay-method ${method === m.id ? 'active' : ''}`}
+                    onClick={() => { setMethod(m.id); setErrors({}); setTouched({}); setPaymentError(null); }}
+                  >
+                    <div className="pm-ico">{m.ico}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="pm-label">{m.label}</div>
+                      <div className="pm-sub">{m.sub}</div>
+                    </div>
+                    <div className="pm-radio">{method === m.id && <span />}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -606,8 +619,9 @@ export default function CheckoutPage() {
                 <label>Mobile number <span className="req">*</span></label>
                 <div className="input-wrap with-pre">
                   <span className="input-pre">+92</span>
-                  <input className={`input ${touched.wallet && errors.wallet ? 'error' : ''}`} placeholder="03001234567" value={wallet} inputMode="numeric" onChange={e => change('wallet', fmtWallet(e.target.value), setWallet)} onBlur={() => blur('wallet', wallet)} style={{ fontFamily: 'var(--font-mono)' }} />
+                  <input className={`input ${touched.wallet && errors.wallet ? 'error' : ''}`} placeholder="3001234567" value={wallet} inputMode="numeric" autoComplete="tel-national" onChange={e => change('wallet', fmtWallet(e.target.value), setWallet)} onBlur={() => blur('wallet', wallet)} style={{ fontFamily: 'var(--font-mono)' }} />
                 </div>
+                <div className="field-hint">10 digits after +92, starting with 3 (not 03).</div>
                 {touched.wallet && errors.wallet && <div className="err"><Warning /> {errors.wallet}</div>}
               </div>
             </div>
