@@ -24,12 +24,17 @@ export default function ProfilePage() {
   const [savedListings, setSavedListings] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('selling');
   const [editOpen, setEditOpen] = useState(false);
   const [ordersFilter, setOrdersFilter] = useState('pending');
+  // 'buy' shows orders the user is the buyer on; 'sell' shows incoming
+  // orders for items they're selling.
+  const [orderRole, setOrderRole] = useState('buy');
   const [myReviews, setMyReviews] = useState([]);
   const [reviewTarget, setReviewTarget] = useState(null);
+  const [reviewRole, setReviewRole] = useState('buyer'); // 'buyer' or 'seller'
   const [orderBusyId, setOrderBusyId] = useState(null);
 
   const refreshMine = useCallback(async () => {
@@ -37,7 +42,7 @@ export default function ProfilePage() {
     try {
       const r = await api.get('/listings/mine');
       setActiveListings(r.data || []);
-    } catch (e) {
+    } catch {
       // Fallback if backend hasn't been restarted yet (route missing)
       const r2 = await api.get(`/listings/user/${me._id}`);
       setActiveListings(r2.data || []);
@@ -66,6 +71,11 @@ export default function ProfilePage() {
       fetches.push(api.get('/users/me/saved').then(r => setSavedListings(r.data)));
       fetches.push(api.get('/orders').then(r => setOrders(r.data)));
       fetches.push(
+        api.get('/orders/sales')
+          .then(r => setSales(r.data || []))
+          .catch(() => setSales([]))
+      );
+      fetches.push(
         api.get('/reviews/mine')
           .then(r => setMyReviews(r.data || []))
           .catch(() => setMyReviews([]))
@@ -82,8 +92,16 @@ export default function ProfilePage() {
   if (!profile) return null;
 
   const pendingOrders   = orders.filter(o => o.status === 'placed' || o.status === 'confirmed');
-  const completedOrders = orders.filter(o => o.status === 'picked_up');
-  const reviewedOrderIds = new Set(myReviews.map(r => String(r.order)));
+  const completedOrders = orders.filter(o => o.status === 'picked_up' || o.status === 'auto_closed');
+  const pendingSales    = sales.filter(o => o.status === 'placed' || o.status === 'confirmed');
+  const completedSales  = sales.filter(o => o.status === 'picked_up' || o.status === 'auto_closed');
+  // Reviewed orders, separated by direction (buyer-to-seller vs seller-to-buyer)
+  const reviewedAsBuyer = new Set(
+    myReviews.filter(r => (r.direction || 'buyer_to_seller') === 'buyer_to_seller').map(r => String(r.order))
+  );
+  const reviewedAsSeller = new Set(
+    myReviews.filter(r => r.direction === 'seller_to_buyer').map(r => String(r.order))
+  );
 
   const myActiveListings = isOwn
     ? activeListings.filter((l) => l.status === 'active')
@@ -95,17 +113,22 @@ export default function ProfilePage() {
     ? activeListings.filter((l) => l.status === 'archived')
     : [];
 
-  const markOrderPickedUp = async (orderId) => {
-    if (!window.confirm('Confirm you have picked up this order? Payment will be released to the seller.')) return;
+  const confirmPickupAsParty = async (orderId) => {
     setOrderBusyId(orderId);
     try {
-      const r = await api.patch(`/orders/${orderId}/status`, { status: 'picked_up' });
+      const r = await api.post(`/orders/${orderId}/confirm-pickup`, { confirmed: true });
       setOrders(prev => prev.map(o => o._id === orderId ? r.data : o));
+      setSales(prev => prev.map(o => o._id === orderId ? r.data : o));
     } catch (err) {
-      window.alert(err?.response?.data?.message || 'Could not update order.');
+      window.alert(err?.response?.data?.message || 'Could not confirm pickup.');
     } finally {
       setOrderBusyId(null);
     }
+  };
+
+  const openReviewForOrder = (order, role) => {
+    setReviewRole(role);
+    setReviewTarget(order);
   };
 
   const onReviewSubmitted = (review) => {
@@ -286,6 +309,25 @@ export default function ProfilePage() {
 
         {tab === 'orders' && isOwn && (
           <div className="orders-tab-wrap">
+            <div className="orders-subtabs" style={{ marginBottom: 10 }}>
+              <button
+                type="button"
+                className={`orders-subtab${orderRole === 'buy' ? ' active' : ''}`}
+                onClick={() => setOrderRole('buy')}
+              >
+                Purchases
+                <span className="orders-subtab-count">{orders.length}</span>
+              </button>
+              <button
+                type="button"
+                className={`orders-subtab${orderRole === 'sell' ? ' active' : ''}`}
+                onClick={() => setOrderRole('sell')}
+              >
+                Sales
+                <span className="orders-subtab-count">{sales.length}</span>
+              </button>
+            </div>
+
             <div className="orders-subtabs">
               <button
                 type="button"
@@ -306,18 +348,27 @@ export default function ProfilePage() {
             </div>
 
             {(() => {
-              const list = ordersFilter === 'pending' ? pendingOrders : completedOrders;
+              const isBuyRole = orderRole === 'buy';
+              const pendingList = isBuyRole ? pendingOrders : pendingSales;
+              const completedList = isBuyRole ? completedOrders : completedSales;
+              const list = ordersFilter === 'pending' ? pendingList : completedList;
               if (!list.length) {
                 return (
                   <div className="empty">
                     <div className="ico">{ordersFilter === 'pending' ? <Clock /> : <Check />}</div>
                     <h3>
-                      {ordersFilter === 'pending' ? 'No pending pickups' : 'No completed orders'}
+                      {ordersFilter === 'pending'
+                        ? (isBuyRole ? 'No pending purchases' : 'No pending sales')
+                        : (isBuyRole ? 'No completed purchases' : 'No completed sales')}
                     </h3>
                     <p>
                       {ordersFilter === 'pending'
-                        ? 'Orders you have placed but not yet picked up will appear here.'
-                        : 'Orders you have picked up will appear here, where you can review the seller.'}
+                        ? (isBuyRole
+                          ? 'Orders you have placed but not yet completed will appear here.'
+                          : 'Orders from buyers who still need pickup confirmation will appear here.')
+                        : (isBuyRole
+                          ? 'Completed purchases appear here, where you can review sellers.'
+                          : 'Completed sales appear here, where you can review buyers.')}
                     </p>
                   </div>
                 );
@@ -328,7 +379,12 @@ export default function ProfilePage() {
                     const firstItem = order.items?.[0];
                     const seller = firstItem?.listing?.seller;
                     const sellerName = seller?.name || firstItem?.sellerName || 'Seller';
-                    const reviewed = reviewedOrderIds.has(String(order._id));
+                    const buyerName = order.buyer?.name || 'Buyer';
+                    const reviewed = isBuyRole
+                      ? reviewedAsBuyer.has(String(order._id))
+                      : reviewedAsSeller.has(String(order._id));
+                    const buyerConfirmed = !!order.pickupConfirmation?.buyerConfirmedAt;
+                    const sellerConfirmed = !!order.pickupConfirmation?.sellerConfirmedAt;
                     return (
                       <div key={order._id} className="order-card">
                         <button
@@ -351,7 +407,13 @@ export default function ProfilePage() {
                             ))}
                           </div>
                           <div className="order-card-meta">
-                            <span>Sold by <strong>{sellerName}</strong></span>
+                            <span>
+                              {isBuyRole ? (
+                                <>Sold by <strong>{sellerName}</strong></>
+                              ) : (
+                                <>Bought by <strong>{buyerName}</strong></>
+                              )}
+                            </span>
                             <span>· {order.pickupSlot}</span>
                           </div>
                           <div className="order-card-foot">
@@ -366,10 +428,17 @@ export default function ProfilePage() {
                               type="button"
                               className="btn btn-primary btn-sm"
                               disabled={orderBusyId === order._id}
-                              onClick={() => markOrderPickedUp(order._id)}
+                              onClick={() => confirmPickupAsParty(order._id)}
                             >
-                              {orderBusyId === order._id ? 'Saving…' : 'I picked it up'}
+                              {orderBusyId === order._id
+                                ? 'Saving…'
+                                : (isBuyRole ? 'I picked it up' : 'Buyer picked it up')}
                             </button>
+                          )}
+                          {ordersFilter === 'pending' && !isBuyRole && (
+                            <span className="order-reviewed-pill" style={{ marginLeft: 8 }}>
+                              {buyerConfirmed ? 'Buyer confirmed' : 'Buyer pending'} · {sellerConfirmed ? 'You confirmed' : 'You pending'}
+                            </span>
                           )}
                           {ordersFilter === 'completed' && (
                             reviewed ? (
@@ -380,9 +449,11 @@ export default function ProfilePage() {
                               <button
                                 type="button"
                                 className="btn btn-primary btn-sm"
-                                onClick={() => setReviewTarget(order)}
-                                disabled={!seller?._id}
-                                title={!seller?._id ? 'Seller info unavailable for this order.' : undefined}
+                                onClick={() => openReviewForOrder(order, isBuyRole ? 'buyer' : 'seller')}
+                                disabled={isBuyRole ? !seller?._id : !order.buyer?._id}
+                                title={isBuyRole
+                                  ? (!seller?._id ? 'Seller info unavailable for this order.' : undefined)
+                                  : (!order.buyer?._id ? 'Buyer info unavailable for this order.' : undefined)}
                               >
                                 <Star style={{ width: 13, height: 13 }} /> Leave review
                               </button>
@@ -479,6 +550,7 @@ export default function ProfilePage() {
         <ReviewModal
           open={!!reviewTarget}
           order={reviewTarget}
+          role={reviewRole}
           onClose={() => setReviewTarget(null)}
           onSubmitted={onReviewSubmitted}
         />

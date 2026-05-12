@@ -28,7 +28,7 @@ const listingSchema = new mongoose.Schema({
   pickup: { type: String, required: true },
   moveOut: { type: Boolean, default: false },
   openOffers: { type: Boolean, default: true },
-  status: { type: String, enum: ['active', 'sold', 'archived'], default: 'active' },
+  status: { type: String, enum: ['active', 'reserved', 'sold', 'archived'], default: 'active' },
   specs: { type: [[String]], default: [] },
   views: { type: Number, default: 0 },
   savedCount: { type: Number, default: 0 },

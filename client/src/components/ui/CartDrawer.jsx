@@ -1,14 +1,16 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
+import { useAcceptedOffersForCart } from '../../hooks/useAcceptedOffersForCart';
 import { X, Cart, Trash, ArrowRight } from './Icon';
 import { fmtPrice } from '../../utils/format';
 
 export default function CartDrawer({ open, onClose }) {
   const navigate = useNavigate();
-  const { cart, removeFromCart, updateQty, cartSubtotal, cartTotal } = useCart();
+  const { cart, removeFromCart } = useCart();
+  const { offerMap, effectiveSubtotal, effectiveTotal, discountAmount } = useAcceptedOffersForCart(cart);
   const serviceFee = cart.length > 0 ? 50 : 0;
-  const itemCount = cart.reduce((s, i) => s + i.qty, 0);
+  const itemCount = cart.length;
 
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden';
@@ -54,15 +56,12 @@ export default function CartDrawer({ open, onClose }) {
                   <div className="cart-drawer-item-title">{item.title}</div>
                   <div className="cart-drawer-item-seller">by {item.sellerName}</div>
                   <div className="cart-drawer-item-bottom">
-                    <div className="cart-drawer-qty">
-                      <button
-                        onClick={() => updateQty(item.listingId, Math.max(1, item.qty - 1))}
-                        disabled={item.qty <= 1}
-                      >−</button>
-                      <span>{item.qty}</span>
-                      <button onClick={() => updateQty(item.listingId, item.qty + 1)}>+</button>
-                    </div>
-                    <span className="cart-drawer-item-price">{fmtPrice(item.price * item.qty)}</span>
+                    <span className="cart-drawer-qty-fixed">Qty 1</span>
+                    <span className="cart-drawer-item-price">
+                      {offerMap[String(item.listingId)]
+                        ? fmtPrice(offerMap[String(item.listingId)].amount * item.qty)
+                        : fmtPrice(item.price * item.qty)}
+                    </span>
                   </div>
                 </div>
                 <button
@@ -82,15 +81,21 @@ export default function CartDrawer({ open, onClose }) {
             <div className="cart-drawer-summary">
               <div className="cart-drawer-sum-row">
                 <span>Subtotal ({itemCount} item{itemCount !== 1 ? 's' : ''})</span>
-                <span>{fmtPrice(cartSubtotal)}</span>
+                <span>{fmtPrice(effectiveSubtotal)}</span>
               </div>
+              {discountAmount > 0 && (
+                <div className="cart-drawer-sum-row">
+                  <span>Offer discount</span>
+                  <span style={{ color: 'var(--green)', fontWeight: 800 }}>−{fmtPrice(discountAmount)}</span>
+                </div>
+              )}
               <div className="cart-drawer-sum-row">
                 <span>Service fee</span>
                 <span>{fmtPrice(serviceFee)}</span>
               </div>
               <div className="cart-drawer-sum-row total">
                 <span>Total</span>
-                <span>{fmtPrice(cartTotal)}</span>
+                <span>{fmtPrice(effectiveTotal)}</span>
               </div>
             </div>
             <div className="cart-drawer-btns">

@@ -27,6 +27,7 @@ export function CartProvider({ children }) {
         photoUrl: listing.photos?.[0] || null,
         pickup: listing.pickup,
         sellerName: listing.seller?.name || 'Seller',
+        sellerId: listing.seller?._id || null,
         qty: 1,
       }];
     });
@@ -35,13 +36,16 @@ export function CartProvider({ children }) {
   const removeFromCart = (listingId) =>
     setCart(prev => prev.filter(i => i.listingId !== listingId));
 
-  const updateQty = (listingId, qty) =>
-    setCart(prev => prev.map(i => i.listingId === listingId ? { ...i, qty } : i));
+  // Each listing represents a single physical item, so quantity is locked at
+  // 1. The setter is kept for backward compatibility with any older call
+  // sites but no-ops anything that tries to change it.
+  const updateQty = (listingId) =>
+    setCart(prev => prev.map(i => i.listingId === listingId ? { ...i, qty: 1 } : i));
 
   const clearCart = () => setCart([]);
 
-  const cartCount = cart.reduce((s, i) => s + i.qty, 0);
-  const cartSubtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const cartCount = cart.length;
+  const cartSubtotal = cart.reduce((s, i) => s + i.price * 1, 0);
   const cartTotal = cartSubtotal + (cart.length > 0 ? 50 : 0);
 
   const inCart = (listingId) => cart.some(i => i.listingId === listingId);

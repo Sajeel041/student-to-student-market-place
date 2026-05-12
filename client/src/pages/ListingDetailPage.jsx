@@ -12,7 +12,8 @@ import {
   ArrowLeft, Heart, HeartO, Share, Tag, Eye, Clock, Pin,
   Verified, ChevR, CheckCirc, Cart, X, Send,
 } from '../components/ui/Icon';
-import { fmtPrice, fmtRelativeTime } from '../utils/format';
+import { fmtPrice, fmtRelativeTime, fmtDateTime } from '../utils/format';
+import { PICKUP_LOCATIONS } from '../utils/constants';
 
 export default function ListingDetailPage() {
   const { id } = useParams();
@@ -32,6 +33,11 @@ export default function ListingDetailPage() {
   const [offersLoading, setOffersLoading] = useState(false);
   const [customOffer, setCustomOffer] = useState(''); // digits only (amount)
   const [customOfferErr, setCustomOfferErr] = useState(null);
+
+  // Pickup requests (seller-side view)
+  const [sellerPickupRequests, setSellerPickupRequests] = useState([]);
+  const [pickupBusyId, setPickupBusyId] = useState(null);
+  const [pickupCounters, setPickupCounters] = useState({}); // pr._id -> { time, location }
 
   // Reviews (buyer after pickup)
   const [reviewEligible, setReviewEligible] = useState(null); // { orderId } | null
@@ -68,9 +74,27 @@ export default function ListingDetailPage() {
     setOffersLoading(true);
     const listingId = String(listing._id);
     const reqs = isOwn
-      ? [api.get(`/offers/listing/${listingId}`).then(r => setSellerOffers(r.data || [])).catch(() => setSellerOffers([]))]
+      ? [
+          api.get(`/offers/listing/${listingId}`).then(r => setSellerOffers(r.data || [])).catch(() => setSellerOffers([])),
+          api.get(`/pickup-requests/listing/${listingId}`).then(r => setSellerPickupRequests(r.data || [])).catch(() => setSellerPickupRequests([])),
+        ]
       : [api.get(`/offers/listing/${listingId}/mine`).then(r => setMyOffer(r.data || null)).catch(() => setMyOffer(null))];
     Promise.all(reqs).finally(() => setOffersLoading(false));
+  }, [listing?._id, listing?.seller?._id, user?._id]);
+
+  // Poll seller-side pickup requests so they see fresh buyer counters live.
+  useEffect(() => {
+    if (!listing?._id || !user?._id) return;
+    const sellerId = listing?.seller?._id;
+    const isOwn = sellerId && String(user._id) === String(sellerId);
+    if (!isOwn) return;
+    const listingId = String(listing._id);
+    const t = setInterval(() => {
+      api.get(`/pickup-requests/listing/${listingId}`)
+        .then(r => setSellerPickupRequests(r.data || []))
+        .catch(() => {});
+    }, 8000);
+    return () => clearInterval(t);
   }, [listing?._id, listing?.seller?._id, user?._id]);
 
   // Refresh buyer offer state (accepted/rejected) after seller action
@@ -228,6 +252,56 @@ export default function ListingDetailPage() {
     }
   };
 
+  const refreshSellerPickups = async () => {
+    if (!listing?._id) return;
+    try {
+      const r = await api.get(`/pickup-requests/listing/${String(listing._id)}`);
+      setSellerPickupRequests(r.data || []);
+    } catch {
+      // ignore — UI keeps previous state
+    }
+  };
+
+  const acceptPickupRequest = async (prId) => {
+    setPickupBusyId(prId);
+    try {
+      await api.patch(`/pickup-requests/${prId}/accept`, {});
+      showToast({ msg: 'Pickup time accepted — buyer can pay now.' });
+      await refreshSellerPickups();
+    } catch (e) {
+      showToast({ msg: e.response?.data?.message || 'Could not accept pickup.' });
+    } finally {
+      setPickupBusyId(null);
+    }
+  };
+
+  const counterPickupRequest = async (prId) => {
+    const draft = pickupCounters[prId] || {};
+    if (!draft.time) {
+      showToast({ msg: 'Pick a date and time first.' });
+      return;
+    }
+    const when = new Date(draft.time);
+    if (Number.isNaN(when.getTime()) || when.getTime() < Date.now() + 15 * 60_000) {
+      showToast({ msg: 'Pick a time at least 15 minutes from now.' });
+      return;
+    }
+    setPickupBusyId(prId);
+    try {
+      await api.patch(`/pickup-requests/${prId}/counter`, {
+        time: when.toISOString(),
+        location: draft.location || '',
+      });
+      showToast({ msg: 'Counter sent to buyer.' });
+      setPickupCounters((m) => ({ ...m, [prId]: { time: '', location: draft.location || '' } }));
+      await refreshSellerPickups();
+    } catch (e) {
+      showToast({ msg: e.response?.data?.message || 'Could not counter.' });
+    } finally {
+      setPickupBusyId(null);
+    }
+  };
+
   const updateOfferStatus = async (offerId, status) => {
     try {
       await api.patch(`/offers/${offerId}`, { status });
@@ -263,7 +337,7 @@ export default function ListingDetailPage() {
 
   return (
     <div className="page">
-      <TopBar onBack={() => navigate(-1)} title={listing.title} right={
+      <TopBar onBack={() => navigate(-1)} title={listing.title} className="topbar--detail" right={
         <>
           <button className="ga-btn" aria-label="Share" onClick={() => navigator.share?.({ title: listing.title, url: window.location.href })}>
             <Share />
@@ -515,6 +589,116 @@ export default function ListingDetailPage() {
                   >
                     Write a review
                   </button>
+                </div>
+              )}
+
+              {/* Pickup requests (seller view) */}
+              {isOwnListing && sellerPickupRequests.length > 0 && (
+                <div className="detail-section">
+                  <h4>Pickup requests</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {sellerPickupRequests.map((pr) => {
+                      const last = pr.proposals?.[pr.proposals.length - 1];
+                      const awaitsMe = pr.status === 'pending' && pr.awaitingFrom === 'seller';
+                      const draft = pickupCounters[pr._id] || { time: '', location: PICKUP_LOCATIONS[0] };
+                      return (
+                        <div key={pr._id} className="seller-pickup-card">
+                          <div className="seller-pickup-top">
+                            <div style={{ fontWeight: 700 }}>{pr.buyer?.name || 'Buyer'}</div>
+                            <span className={`admin-badge ${pr.status}`} style={{ textTransform: 'uppercase' }}>
+                              {pr.status}
+                            </span>
+                          </div>
+
+                          <div className="negotiation-history" style={{ margin: '8px 0' }}>
+                            {pr.proposals.map((p, i) => (
+                              <div key={i} className={`neg-row ${p.byRole}`}>
+                                <div className="neg-row-by">
+                                  <strong>{p.byRole === 'buyer' ? 'Buyer proposed' : 'You proposed'}</strong>
+                                  <span className="neg-row-when">{fmtDateTime(p.at)}</span>
+                                </div>
+                                <div className="neg-row-time">{fmtDateTime(p.time)}</div>
+                                {p.location && <div className="neg-row-loc"><Pin style={{ width: 11, height: 11 }} /> {p.location}</div>}
+                                {p.note && <div className="neg-row-note">"{p.note}"</div>}
+                              </div>
+                            ))}
+                          </div>
+
+                          {pr.status === 'accepted' && (
+                            <div className="negotiation-locked">
+                              <CheckCirc style={{ width: 18, height: 18, color: 'var(--teal-700)' }} />
+                              <div>
+                                <div style={{ fontWeight: 700 }}>{fmtDateTime(pr.acceptedTime)}</div>
+                                {pr.acceptedLocation && (
+                                  <div className="negotiation-locked-sub"><Pin style={{ width: 11, height: 11 }} /> {pr.acceptedLocation}</div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {awaitsMe && (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-block"
+                                style={{ marginTop: 6, height: 44 }}
+                                disabled={pickupBusyId === pr._id}
+                                onClick={() => acceptPickupRequest(pr._id)}
+                              >
+                                Accept {last ? fmtDateTime(last.time) : ''}
+                              </button>
+                              <div className="field" style={{ marginTop: 10 }}>
+                                <label>Counter with a different time</label>
+                                <input
+                                  type="datetime-local"
+                                  className="input"
+                                  value={draft.time || ''}
+                                  onChange={(e) =>
+                                    setPickupCounters((m) => ({
+                                      ...m,
+                                      [pr._id]: { ...draft, time: e.target.value },
+                                    }))
+                                  }
+                                />
+                              </div>
+                              <div className="field">
+                                <label>Pickup location</label>
+                                <select
+                                  className="input"
+                                  value={draft.location || PICKUP_LOCATIONS[0]}
+                                  onChange={(e) =>
+                                    setPickupCounters((m) => ({
+                                      ...m,
+                                      [pr._id]: { ...draft, location: e.target.value },
+                                    }))
+                                  }
+                                >
+                                  {PICKUP_LOCATIONS.map(loc => (
+                                    <option key={loc} value={loc}>{loc}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-block"
+                                style={{ height: 44 }}
+                                disabled={pickupBusyId === pr._id || !draft.time}
+                                onClick={() => counterPickupRequest(pr._id)}
+                              >
+                                Send counter
+                              </button>
+                            </>
+                          )}
+
+                          {pr.status === 'pending' && pr.awaitingFrom === 'buyer' && (
+                            <div className="negotiation-hint">
+                              You countered — waiting on the buyer to accept or reply.
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 

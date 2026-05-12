@@ -3,32 +3,48 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 
 // POST /api/reviews
+// body: { revieweeId, listingId, orderId, stars, text }
+// Either the buyer or the seller of a picked_up order may post one review
+// for the other (direction is inferred from role on the order).
 const createReview = async (req, res) => {
   try {
     const { revieweeId, listingId, orderId, stars, text } = req.body;
 
     const order = await Order.findById(orderId);
     if (!order) return res.status(404).json({ message: 'Order not found' });
-    if (order.buyer.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Only the buyer can leave a review' });
+
+    const uid = req.user._id.toString();
+    const isBuyer = order.buyer.toString() === uid;
+    const isSeller = order.seller?.toString() === uid;
+    if (!isBuyer && !isSeller) {
+      return res.status(403).json({ message: 'Only the buyer or seller can leave a review.' });
     }
     if (order.status !== 'picked_up') {
-      return res.status(400).json({ message: 'Order must be picked up before reviewing' });
+      return res.status(400).json({ message: 'Pickup must be confirmed before reviewing.' });
+    }
+
+    const direction = isBuyer ? 'buyer_to_seller' : 'seller_to_buyer';
+
+    // Reviewee should match the other party on the order to avoid stuffing.
+    const expectedReviewee = isBuyer ? order.seller : order.buyer;
+    if (expectedReviewee && String(expectedReviewee) !== String(revieweeId)) {
+      return res.status(400).json({ message: 'Reviewee does not match the other party on this order.' });
     }
 
     const existing = await Review.findOne({ reviewer: req.user._id, order: orderId });
-    if (existing) return res.status(409).json({ message: 'Review already submitted for this order' });
+    if (existing) return res.status(409).json({ message: 'Review already submitted for this order.' });
 
     const review = await Review.create({
       reviewer: req.user._id,
       reviewee: revieweeId,
       listing: listingId,
       order: orderId,
+      direction,
       stars: Number(stars),
       text: text || '',
     });
 
-    // Recalculate reviewee's average rating
+    // Recalculate reviewee's rolling average across all reviews they received.
     const allReviews = await Review.find({ reviewee: revieweeId });
     const avg = allReviews.reduce((s, r) => s + r.stars, 0) / allReviews.length;
     await User.findByIdAndUpdate(revieweeId, {
@@ -57,9 +73,8 @@ const getReviewsForUser = async (req, res) => {
   }
 };
 
-// GET /api/reviews/mine — reviews authored by the logged-in user.
-// Used by the profile orders tab to know which orders the user has already
-// reviewed so we can hide the "Leave review" button.
+// GET /api/reviews/mine — reviews authored by the logged-in user, used to
+// hide the "leave review" button for orders they've already rated.
 const getMyReviews = async (req, res) => {
   try {
     const reviews = await Review.find({ reviewer: req.user._id })

@@ -1,15 +1,17 @@
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
+import { useAcceptedOffersForCart } from '../hooks/useAcceptedOffersForCart';
 import TopBar from '../components/layout/TopBar';
 import BottomNav from '../components/layout/BottomNav';
-import { Cart, Trash, Pin, Verified, ArrowRight, X } from '../components/ui/Icon';
+import { Cart, Trash, Pin, Verified, ArrowRight } from '../components/ui/Icon';
 import { fmtPrice } from '../utils/format';
 
 export default function CartPage() {
   const navigate = useNavigate();
-  const { cart, removeFromCart, updateQty, cartSubtotal, cartTotal } = useCart();
+  const { cart, removeFromCart } = useCart();
+  const { offerMap, effectiveSubtotal, effectiveTotal, discountAmount } = useAcceptedOffersForCart(cart);
   const serviceFee = cart.length > 0 ? 50 : 0;
-  const itemCount = cart.reduce((s, i) => s + i.qty, 0);
+  const itemCount = cart.length;
 
   return (
     <div className="page">
@@ -57,21 +59,14 @@ export default function CartPage() {
                       <Verified style={{ width: 11, height: 11, color: 'var(--teal-700)' }} />
                     </div>
                     <div className="cart-row-foot">
-                      <div className="qty">
-                        <button
-                          className="qty-btn"
-                          onClick={() => updateQty(item.listingId, Math.max(1, item.qty - 1))}
-                          disabled={item.qty <= 1}
-                          aria-label="Decrease"
-                        >−</button>
-                        <span>{item.qty}</span>
-                        <button
-                          className="qty-btn"
-                          onClick={() => updateQty(item.listingId, item.qty + 1)}
-                          aria-label="Increase"
-                        >+</button>
+                      <div className="cart-qty-tag" aria-label="Quantity">
+                        Qty <strong>1</strong>
                       </div>
-                      <div className="cart-price">{fmtPrice(item.price * item.qty)}</div>
+                      <div className="cart-price">
+                        {offerMap[String(item.listingId)]
+                          ? fmtPrice(offerMap[String(item.listingId)].amount * item.qty)
+                          : fmtPrice(item.price * item.qty)}
+                      </div>
                     </div>
                   </div>
                   <button className="cart-x" onClick={() => removeFromCart(item.listingId)} aria-label="Remove">
@@ -84,7 +79,17 @@ export default function CartPage() {
             <div className="cart-summary">
               <div className="sum-row">
                 <span>Subtotal ({itemCount} item{itemCount !== 1 ? 's' : ''})</span>
-                <span>{fmtPrice(cartSubtotal)}</span>
+                <span>{fmtPrice(effectiveSubtotal)}</span>
+              </div>
+              {discountAmount > 0 && (
+                <div className="sum-row">
+                  <span>Offer discount</span>
+                  <span style={{ color: 'var(--green)', fontWeight: 800 }}>−{fmtPrice(discountAmount)}</span>
+                </div>
+              )}
+              <div className="sum-row" style={{ fontSize: 11.5, color: 'var(--muted)' }}>
+                <span>Each listing is one-of-one, so quantity is fixed at 1.</span>
+                <span />
               </div>
               <div className="sum-row">
                 <span>Service fee</span>
@@ -96,7 +101,7 @@ export default function CartPage() {
               </div>
               <div className="sum-row total">
                 <span>Total</span>
-                <span>{fmtPrice(cartTotal)}</span>
+                <span>{fmtPrice(effectiveTotal)}</span>
               </div>
             </div>
 
@@ -106,7 +111,7 @@ export default function CartPage() {
                 onClick={() => navigate('/checkout')}
                 style={{ height: 54 }}
               >
-                Checkout · {fmtPrice(cartTotal)} <ArrowRight width={16} height={16} />
+                Checkout · {fmtPrice(effectiveTotal)} <ArrowRight width={16} height={16} />
               </button>
               <p className="cart-mini" style={{ marginTop: 10 }}>
                 <Verified style={{ width: 14, height: 14 }} />

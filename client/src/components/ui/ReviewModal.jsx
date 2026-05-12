@@ -12,16 +12,17 @@ const RATING_LABELS = {
 };
 
 /**
- * Modal that lets a buyer leave a single review for one picked-up order.
+ * Modal that lets either party leave a single review for one picked-up order.
  *
  * Required props:
- *   open       — boolean
- *   onClose    — () => void
- *   order      — the order document (with at least { _id, items, ... } where
- *                items[0].listing is populated and exposes .seller).
- *   onSubmitted — (review) => void   (parent updates its review map)
+ *   open        — boolean
+ *   onClose     — () => void
+ *   order       — the order document
+ *   role        — 'buyer' (reviewing seller) | 'seller' (reviewing buyer).
+ *                 Defaults to 'buyer' for backwards compat.
+ *   onSubmitted — (review) => void
  */
-export default function ReviewModal({ open, onClose, order, onSubmitted }) {
+export default function ReviewModal({ open, onClose, order, onSubmitted, role = 'buyer' }) {
   const [stars, setStars] = useState(5);
   const [hover, setHover] = useState(0);
   const [text, setText]   = useState('');
@@ -52,24 +53,30 @@ export default function ReviewModal({ open, onClose, order, onSubmitted }) {
 
   const firstItem  = order.items?.[0] || {};
   const listing    = firstItem.listing || {};
-  const seller     = listing.seller || {};
-  const sellerName = seller.name || firstItem.sellerName || 'the seller';
+  const seller     = listing.seller || order.seller || {};
+  const buyer      = order.buyer || {};
+  const isBuyerReview = role === 'buyer';
+  const reviewee   = isBuyerReview ? seller : buyer;
+  const revieweeName = reviewee?.name
+    || (isBuyerReview ? firstItem.sellerName : null)
+    || (isBuyerReview ? 'the seller' : 'the buyer');
   const listingId  = typeof listing === 'object' ? listing._id : listing;
+  const headingLabel = isBuyerReview ? 'Rate the seller' : 'Rate the buyer';
 
   const canSubmit = stars >= 1 && stars <= 5 && !busy;
 
   const submit = async (e) => {
     e.preventDefault();
     if (!canSubmit) return;
-    if (!listingId || !seller._id) {
-      setErr('This order is missing seller info — please refresh and try again.');
+    if (!listingId || !reviewee?._id) {
+      setErr('This order is missing the other party\u2019s info — please refresh and try again.');
       return;
     }
     setBusy(true);
     setErr(null);
     try {
       const r = await api.post('/reviews', {
-        revieweeId: seller._id,
+        revieweeId: reviewee._id,
         listingId,
         orderId: order._id,
         stars,
@@ -101,7 +108,7 @@ export default function ReviewModal({ open, onClose, order, onSubmitted }) {
         <div className="sheet-handle" />
 
         <div className="sheet-hd">
-          <h3 id="review-title">Rate {sellerName}</h3>
+          <h3 id="review-title">{headingLabel} · {revieweeName}</h3>
           <button type="button" className="sheet-close" onClick={onClose} aria-label="Close">
             <X />
           </button>
@@ -109,8 +116,11 @@ export default function ReviewModal({ open, onClose, order, onSubmitted }) {
 
         <form className="sheet-body review-form" onSubmit={submit}>
           <p className="review-sub">
-            How was your pickup of <strong>{firstItem.title || 'this item'}</strong>?
-            Your review is public and helps other buyers.
+            {isBuyerReview ? (
+              <>How was your pickup of <strong>{firstItem.title || 'this item'}</strong>? Your review is public and helps other buyers.</>
+            ) : (
+              <>How was selling to <strong>{revieweeName}</strong>? Your review is public and helps other sellers know how reliable this buyer is.</>
+            )}
           </p>
 
           <div
@@ -146,7 +156,9 @@ export default function ReviewModal({ open, onClose, order, onSubmitted }) {
             <textarea
               id="review-text"
               className="textarea"
-              placeholder={`Was ${sellerName} on time? Was the item as described?`}
+              placeholder={isBuyerReview
+                ? `Was ${revieweeName} on time? Was the item as described?`
+                : `Was ${revieweeName} on time? Easy to coordinate?`}
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 500))}
               maxLength={500}

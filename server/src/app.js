@@ -15,6 +15,7 @@ const adminRoutes = require('./routes/admin');
 const complaintsRoutes = require('./routes/complaints');
 const offersRoutes = require('./routes/offers');
 const notificationsRoutes = require('./routes/notifications');
+const pickupRequestsRoutes = require('./routes/pickupRequests');
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/complaints', complaintsRoutes);
 app.use('/api/offers', offersRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/pickup-requests', pickupRequestsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

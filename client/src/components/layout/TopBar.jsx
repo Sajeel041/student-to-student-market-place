@@ -17,7 +17,7 @@ const navItems = [
   { id: 'profile', path: '/profile', label: 'Profile', I: User },
 ];
 
-export default function TopBar({ onBack, title, kicker, right, withBorder, transparent }) {
+export default function TopBar({ onBack, title, kicker, right, withBorder, transparent, className }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { cartCount } = useCart();
@@ -212,7 +212,7 @@ export default function TopBar({ onBack, title, kicker, right, withBorder, trans
   return (
     <>
       <div
-        className={`topbar ${withBorder ? 'with-border' : ''}`}
+        className={`topbar ${withBorder ? 'with-border' : ''} ${className || ''}`}
         style={transparent ? { background: 'transparent' } : undefined}
       >
         {onBack !== undefined ? (
@@ -232,12 +232,12 @@ export default function TopBar({ onBack, title, kicker, right, withBorder, trans
 
         {title && (
           kicker ? (
-            <div className="topbar-mid">
+            <div className="topbar-mid topbar-title">
               <div className="topbar-kicker">{kicker}</div>
               <div className="topbar-title-main">{title}</div>
             </div>
           ) : (
-            <div style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.01em' }}>
+            <div className="topbar-title" style={{ fontWeight: 800, fontSize: 16, letterSpacing: '-0.01em' }}>
               {title}
             </div>
           )
